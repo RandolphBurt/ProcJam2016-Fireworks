@@ -1,0 +1,13 @@
+body {
+    background-color: lightgray
+}
+
+.title {
+    text-align: center;
+    color:#2eb82e
+}
+
+#gameDiv {
+   width: 100%;
+   text-align:center;
+}

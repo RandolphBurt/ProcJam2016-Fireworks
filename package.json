@@ -1,0 +1,23 @@
+{
+  "name": "procjam-fireworks",
+  "version": "1.0.0",
+  "description": "Procedural generation firework display entry for ProcJam 2016",
+  "main": "index.js",
+  "scripts": {
+  	"start": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RandolphBurt/ProcJam2016-Fireworks.git"
+  },
+  "keywords": [
+    "procjam"
+  ],
+  "author": "Randolph Burt",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RandolphBurt/ProcJam2016-Fireworks/issues"
+  },
+  "homepage": "https://github.com/RandolphBurt/ProcJam2016-Fireworks#readme"
+}
