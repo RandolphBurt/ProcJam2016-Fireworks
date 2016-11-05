@@ -1,18 +1,11 @@
 class NumberProceduralGeneration {
-    private seed:number;
-    private minLength:number;
-    private maxLength:number;
-
-    constructor(seed:number, minLength:number, maxLength:number) {
-        this.seed = seed;
-        this.minLength = minLength;
-        this.maxLength = maxLength;
+    constructor(private seed:number, private readonly minLength:number, private readonly  maxLength:number) {
     } 
 
-    public Generate = (iterations:number) : string[] => {
-        let procedurallyGeneratedString = this.ProcedurallyGenerateNumberString(iterations);
+    public generate = (iterations:number) : string[] => {
+        let procedurallyGeneratedString = this.procedurallyGenerateNumberString(iterations);
 
-        let numberList:string[] = this.SplitNumberString(procedurallyGeneratedString);
+        let numberList:string[] = this.splitNumberString(procedurallyGeneratedString);
 
         console.log(numberList.length);
         console.log(procedurallyGeneratedString.length);
@@ -20,21 +13,21 @@ class NumberProceduralGeneration {
         return numberList;
     };
 
-    private ProcedurallyGenerateNumberString = (iterations:number) : string => {
+    private procedurallyGenerateNumberString = (iterations:number) : string => {
         let procedurallyGeneratedString = '';
         for (var i = 0; i < iterations; i++) {
-            var word = this.GetNextNumberSequence().toString().replace('.', '');
+            var word = this.getNextNumberSequence().toString().replace('.', '');
             procedurallyGeneratedString = procedurallyGeneratedString + word;
         }
         return procedurallyGeneratedString;
     }
 
-    private GetNextNumberSequence = () : number => {
+    private getNextNumberSequence = () : number => {
         var x = Math.sin(this.seed++) * 10000;
         return x - Math.floor(x);
     }
 
-    private SplitNumberString = (input:string) : string[] => {
+    private splitNumberString = (input:string) : string[] => {
         let numberList:string[] = [];
         let count = 0;
         var resultLength = input.length;
