@@ -1,3 +1,29 @@
+window.onload = function () {
+    var gameState = new MainState();
+};
+var Firework = (function () {
+    function Firework() {
+    }
+    return Firework;
+}());
+var Key = Phaser.Key;
+var Sprite = Phaser.Sprite;
+var Game = Phaser.Game;
+var MainState = (function () {
+    function MainState() {
+        var _this = this;
+        this.create = function () {
+            _this.game.scale.pageAlignHorizontally = true;
+            _this.game.stage.backgroundColor = '#ffffff';
+            var x = new NumberProceduralGeneration(324, 5, 25);
+            x.Generate(1000);
+        };
+        this.update = function () {
+        };
+        this.game = new Game(800, 600, Phaser.AUTO, 'content', { create: this.create, update: this.update });
+    }
+    return MainState;
+}());
 var NumberProceduralGeneration = (function () {
     function NumberProceduralGeneration(seed, minLength, maxLength) {
         var _this = this;
@@ -42,4 +68,12 @@ var NumberProceduralGeneration = (function () {
     }
     return NumberProceduralGeneration;
 }());
-//# sourceMappingURL=numberProceduralGeneration.js.map
+var NumberToFireworkMapper = (function () {
+    function NumberToFireworkMapper() {
+        this.Map = function (input) {
+            return new Firework();
+        };
+    }
+    return NumberToFireworkMapper;
+}());
+//# sourceMappingURL=app.js.map
