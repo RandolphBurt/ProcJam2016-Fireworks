@@ -8,24 +8,33 @@ var FireworkTransitionType;
     FireworkTransitionType[FireworkTransitionType["Split"] = 1] = "Split";
     FireworkTransitionType[FireworkTransitionType["Explode"] = 2] = "Explode";
 })(FireworkTransitionType || (FireworkTransitionType = {}));
+var FireworkState;
+(function (FireworkState) {
+    FireworkState[FireworkState["InActive"] = 0] = "InActive";
+    FireworkState[FireworkState["Active"] = 1] = "Active";
+    FireworkState[FireworkState["Finished"] = 2] = "Finished";
+})(FireworkState || (FireworkState = {}));
 var FireworkTransition = (function () {
-    function FireworkTransition(transitionType, angle) {
+    function FireworkTransition(transitionType, angle, color) {
         this.transitionType = transitionType;
         this.angle = angle;
-        this.angle = angle;
-        this.transitionType = transitionType;
+        this.color = color;
     }
     return FireworkTransition;
 }());
 var Firework = (function () {
-    function Firework(startXPercentage, colour) {
+    function Firework(startXPercentage) {
         var _this = this;
         this.startXPercentage = startXPercentage;
-        this.colour = colour;
         this.transitionList = [];
         this.spriteList = [];
+        this.state = FireworkState.InActive;
+        this.nextTransitionEventTime = 0;
         this.addTransition = function (transition) {
             _this.transitionList.push(transition);
+        };
+        this.addSprite = function (sprite) {
+            _this.spriteList.push(sprite);
         };
         this.runNextTransition = function () {
             var nextTransition = _this.transitionList.shift();
@@ -34,21 +43,36 @@ var Firework = (function () {
                     _this.handleMove(nextTransition);
                     break;
                 case FireworkTransitionType.Explode:
-                    _this.handleExplosion();
+                    _this.handleExplosion(nextTransition);
                     break;
                 case FireworkTransitionType.Split:
-                    _this.handleSplit();
+                    _this.handleSplit(nextTransition);
                     break;
             }
+            if (_this.transitionList.length === 0) {
+                _this.state = FireworkState.Finished;
+            }
         };
-        this.isFinished = function () {
-            return _this.transitionList.length === 0;
+        this.setNextTransitionEventTime = function (nextTransitionEvent) {
+            if (_this.state === FireworkState.InActive) {
+                _this.state = FireworkState.Active;
+            }
+            _this.nextTransitionEventTime = nextTransitionEvent;
+        };
+        this.getNextTransitionEventTime = function () {
+            return _this.nextTransitionEventTime;
+        };
+        this.hasStarted = function () {
+            return _this.state !== FireworkState.InActive;
+        };
+        this.hasFinished = function () {
+            return _this.state === FireworkState.Finished;
         };
         this.handleMove = function (transition) {
         };
-        this.handleExplosion = function () {
+        this.handleExplosion = function (transition) {
         };
-        this.handleSplit = function () {
+        this.handleSplit = function (transition) {
         };
     }
     return Firework;
@@ -67,7 +91,8 @@ var MainState = (function () {
             var numberProceduralGeneration = new NumberProceduralGeneration(324, 5, 25);
             var numbers = numberProceduralGeneration.generate(1000);
             var fireworkMapper = new NumberToFireworkMapper();
-            for (var number in numbers) {
+            for (var _i = 0, numbers_1 = numbers; _i < numbers_1.length; _i++) {
+                var number = numbers_1[_i];
                 _this.fireworks.push(fireworkMapper.map(number));
             }
         };
@@ -76,17 +101,48 @@ var MainState = (function () {
             _this.game.stage.backgroundColor = '#ffffff';
             _this.game.renderer.renderSession.roundPixels = true;
             _this.fireworkSpritesGroup = _this.game.add.group();
+            _this.fireworkCounter = 0;
+            _this.fireworkCreationTimer = _this.game.time.events.loop(Phaser.Timer.SECOND / 5, _this.fireworkCreationTick, _this);
+            _this.fireworkTransitionTimer = _this.game.time.events.loop(Phaser.Timer.SECOND / 2, _this.fireworkTransitionTick, _this);
+        };
+        this.fireworkTransitionTick = function () {
+            var elapsed = _this.game.time.totalElapsedSeconds();
+            for (var _i = 0, _a = _this.fireworks; _i < _a.length; _i++) {
+                var firework = _a[_i];
+                if (!firework.hasStarted()) {
+                    return;
+                }
+                if (!firework.hasFinished() && firework.getNextTransitionEventTime() <= elapsed) {
+                    firework.runNextTransition();
+                    _this.setFireworkNextTransitionTime(firework);
+                }
+            }
+        };
+        this.fireworkCreationTick = function () {
+            if (_this.fireworkCounter >= _this.fireworks.length) {
+                _this.game.time.events.remove(_this.fireworkCreationTimer);
+                return;
+            }
+            var firework = _this.fireworks[_this.fireworkCounter];
+            _this.attachFireworkSprite(firework);
+            _this.setFireworkNextTransitionTime(firework);
+            _this.fireworkCounter++;
+        };
+        this.setFireworkNextTransitionTime = function (firework) {
+            firework.setNextTransitionEventTime(_this.game.time.totalElapsedSeconds() + 1);
+        };
+        this.attachFireworkSprite = function (firework) {
             var fireworkSprite = _this.fireworkSpritesGroup.getFirstExists(false);
+            var startXPosition = 800 * firework.startXPercentage / 100;
             if (!fireworkSprite) {
-                fireworkSprite = _this.fireworkSpritesGroup.create(400, 400, 'firework');
+                fireworkSprite = _this.fireworkSpritesGroup.create(startXPosition, 400, 'firework');
             }
             else {
-                fireworkSprite.reset(400, 400);
+                fireworkSprite.reset(startXPosition, 400);
             }
+            firework.addSprite(fireworkSprite);
         };
-        this.update = function () {
-        };
-        this.game = new Game(800, 600, Phaser.AUTO, 'content', { init: this.init, preload: this.preload, create: this.create, update: this.update });
+        this.game = new Game(800, 600, Phaser.AUTO, 'content', { init: this.init, preload: this.preload, create: this.create });
     }
     return MainState;
 }());
@@ -99,8 +155,6 @@ var NumberProceduralGeneration = (function () {
         this.generate = function (iterations) {
             var procedurallyGeneratedString = _this.procedurallyGenerateNumberString(iterations);
             var numberList = _this.splitNumberString(procedurallyGeneratedString);
-            console.log(numberList.length);
-            console.log(procedurallyGeneratedString.length);
             return numberList;
         };
         this.procedurallyGenerateNumberString = function (iterations) {
@@ -126,7 +180,6 @@ var NumberProceduralGeneration = (function () {
                 }
                 var word = input.substr(count + 2, splitLength);
                 numberList.push(word);
-                console.log(word);
                 count = count + splitLength + 2;
             }
             return numberList;
@@ -138,25 +191,29 @@ var NumberToFireworkMapper = (function () {
     function NumberToFireworkMapper() {
         var _this = this;
         this.map = function (input) {
-            var position = _this.translateStartPosition(input.substr(0, 2));
-            var colour = _this.translateColour(input.substr(2, 1));
-            var firework = new Firework(position, colour);
-            _this.addTransitions(firework, input.substr(3));
+            var position = input.substr(0, 2);
+            var movementTransitions = input.substr(2, input.length - 3);
+            var colour = input[input.length - 1];
+            var firework = new Firework(_this.translateStartPosition(position));
+            _this.addMovementTransitions(firework, movementTransitions);
+            _this.addExplosionTransition(firework, colour);
             return firework;
         };
-        this.addTransitions = function (firework, transitions) {
+        this.addExplosionTransition = function (firework, transition) {
+            firework.addTransition(new FireworkTransition(FireworkTransitionType.Explode, _this.translateColour(transition)));
+        };
+        this.addMovementTransitions = function (firework, transitions) {
             var previousCharacter = null;
             for (var _i = 0, transitions_1 = transitions; _i < transitions_1.length; _i++) {
                 var c = transitions_1[_i];
                 if (previousCharacter === c) {
-                    firework.addTransition(new FireworkTransition(FireworkTransitionType.Split));
+                    firework.addTransition(new FireworkTransition(FireworkTransitionType.Split, _this.translateColour(c)));
                 }
                 else {
                     firework.addTransition(new FireworkTransition(FireworkTransitionType.Move, _this.translateAngle(c)));
                 }
                 previousCharacter = c;
             }
-            firework.addTransition(new FireworkTransition(FireworkTransitionType.Explode));
         };
         this.translateStartPosition = function (position) {
             return parseInt(position);

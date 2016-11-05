@@ -7,9 +7,6 @@ class NumberProceduralGeneration {
 
         let numberList:string[] = this.splitNumberString(procedurallyGeneratedString);
 
-        console.log(numberList.length);
-        console.log(procedurallyGeneratedString.length);
-        
         return numberList;
     };
 
@@ -39,7 +36,6 @@ class NumberProceduralGeneration {
             }
             var word = input.substr(count + 2, splitLength);
             numberList.push(word);
-            console.log(word);
             count = count + splitLength + 2;
         }
         return numberList;

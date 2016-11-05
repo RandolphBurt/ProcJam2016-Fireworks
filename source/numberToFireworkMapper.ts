@@ -13,27 +13,31 @@ class NumberToFireworkMapper {
     ];
 
     public map = (input:string) : Firework => {
-        let position = this.translateStartPosition(input.substr(0, 2));
-        let colour = this.translateColour(input.substr(2, 1));
+        let position = input.substr(0, 2);
+        let movementTransitions = input.substr(2, input.length - 3);
+        let colour = input[input.length - 1]; 
         
-        let firework = new Firework(position, colour);
-
-        this.addTransitions(firework, input.substr(3));
+        let firework = new Firework(this.translateStartPosition(position));
+        this.addMovementTransitions(firework, movementTransitions);
+        this.addExplosionTransition(firework, colour);
 
         return firework;
     }
 
-    private addTransitions = (firework:Firework, transitions:string) => {
+    private addExplosionTransition = (firework:Firework, transition:string) => {
+        firework.addTransition(new FireworkTransition(FireworkTransitionType.Explode, this.translateColour(transition)));
+    }
+
+    private addMovementTransitions = (firework:Firework, transitions:string) => {
         let previousCharacter:string = null;
         for (var c of transitions) {
             if (previousCharacter === c) {
-                firework.addTransition(new FireworkTransition(FireworkTransitionType.Split));
+                firework.addTransition(new FireworkTransition(FireworkTransitionType.Split, this.translateColour(c)));
             } else {
                 firework.addTransition(new FireworkTransition(FireworkTransitionType.Move, this.translateAngle(c)));
             }
             previousCharacter = c;
         }
-        firework.addTransition(new FireworkTransition(FireworkTransitionType.Explode));
     }
 
     private translateStartPosition = (position:string) : number => {
