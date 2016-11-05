@@ -12,6 +12,9 @@ class MainState {
     public create = () => {
         this.game.scale.pageAlignHorizontally = true;
         this.game.stage.backgroundColor = '#ffffff';
+
+        var x = new NumberProceduralGeneration(324, 5, 25);
+        x.Generate(1000);
     }
 
     public update = () => {

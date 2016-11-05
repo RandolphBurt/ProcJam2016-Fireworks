@@ -7,6 +7,8 @@ var MainState = (function () {
         this.create = function () {
             _this.game.scale.pageAlignHorizontally = true;
             _this.game.stage.backgroundColor = '#ffffff';
+            var x = new NumberProceduralGeneration(324, 5, 25);
+            x.Generate(1000);
         };
         this.update = function () {
         };
