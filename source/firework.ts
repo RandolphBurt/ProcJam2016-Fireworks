@@ -20,7 +20,7 @@ class FireworkTransition {
 }
 
 interface FireworkCallbacks {
-    attachFireworkSprite(firework: Firework): void;
+    createFireworkSprite(startXPercentage:number, angle:number, speed:number) : any;
     getGameTimeElapsed() : number;
 }
 
@@ -34,17 +34,14 @@ class Firework {
     }
 
     public launch = () => {
-        this.fireworkCallbacks.attachFireworkSprite(this);
-        // TODO: Set the speed/direction
+        // TODO: Set the speed/direction based on something?
+        let sprite = this.fireworkCallbacks.createFireworkSprite(this.startXPercentage, -90, 300);
+        this.spriteList.push(sprite);
         this.setNextTransitionEventTime();
     }
 
     public addTransition = (transition: FireworkTransition) => {
         this.transitionList.push(transition);
-    }
-
-    public addSprite = (sprite:any) => {
-        this.spriteList.push(sprite);
     }
 
     public runNextTransition = () => {

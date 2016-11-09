@@ -24,7 +24,7 @@ class MainState {
         let numbers = numberProceduralGeneration.generate(1000);
 
         let fireworkCallbacks: FireworkCallbacks = {
-            attachFireworkSprite: this.attachFireworkSprite, 
+            createFireworkSprite: this.createFireworkSprite, 
             getGameTimeElapsed: this.getGameTimeElapsed
         };
 
@@ -35,10 +35,13 @@ class MainState {
     }
 
     public create = () => {
+        this.game.physics.startSystem(Phaser.Physics.ARCADE);
+        this.game.world.setBounds(0, 0, 800, 600);
+
         this.game.scale.pageAlignHorizontally = true;
         this.game.stage.backgroundColor = '#ffffff';
         this.game.renderer.renderSession.roundPixels = true;
-        this.fireworkSpritesGroup = this.game.add.group();
+        this.fireworkSpritesGroup = this.game.add.physicsGroup();
 
         /* temp below
         let fireworkSprite = this.fireworkSpritesGroup.getFirstExists(false);
@@ -85,16 +88,19 @@ class MainState {
         return this.game.time.totalElapsedSeconds();
     }
 
-    private attachFireworkSprite = (firework:Firework) => {
+    private createFireworkSprite = (startXPercentage:number, angle:number, speed:number) : any => {
         let fireworkSprite = this.fireworkSpritesGroup.getFirstExists(false);
 
-        let startXPosition:number = 800 * firework.startXPercentage / 100;
+        let startXPosition:number = 800 * startXPercentage / 100;
         if (!fireworkSprite) {
             fireworkSprite = this.fireworkSpritesGroup.create(startXPosition, 400, 'firework');
         } else {
             fireworkSprite.reset(startXPosition, 400);
         }
+        this.game.physics.enable(fireworkSprite, Phaser.Physics.ARCADE);
 
-        firework.addSprite(fireworkSprite);
+        fireworkSprite.body.velocity.copyFrom(this.game.physics.arcade.velocityFromAngle(angle, speed));
+
+        return fireworkSprite;
    }
 }
