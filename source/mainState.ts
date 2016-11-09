@@ -12,7 +12,7 @@ class MainState {
     private fireworkTransitionTimer:Phaser.TimerEvent;
     private fireworkSpritesGroup:Phaser.Group;
     private fireworks:Firework[];
-    private fireworkCounter:number;
+    private fireworkLaunchedCounter:number;
 
     public preload = () => {
         this.game.load.image('firework', 'assets/firework.png');
@@ -23,9 +23,14 @@ class MainState {
         let numberProceduralGeneration = new NumberProceduralGeneration(324, 5, 25);
         let numbers = numberProceduralGeneration.generate(1000);
 
-        let fireworkMapper = new NumberToFireworkMapper();
+        let fireworkCallbacks: FireworkCallbacks = {
+            attachFireworkSprite: this.attachFireworkSprite, 
+            getGameTimeElapsed: this.getGameTimeElapsed
+        };
+
+        let fireworkFactory = new FireworkFactory(fireworkCallbacks);
         for (var number of numbers) {
-            this.fireworks.push(fireworkMapper.map(number));
+            this.fireworks.push(fireworkFactory.create(number));
         }
     }
 
@@ -45,13 +50,13 @@ class MainState {
         }        
         */
 
-        this.fireworkCounter = 0;
+        this.fireworkLaunchedCounter = 0;
         this.fireworkCreationTimer = this.game.time.events.loop(Phaser.Timer.SECOND / 5, this.fireworkCreationTick, this);
         this.fireworkTransitionTimer = this.game.time.events.loop(Phaser.Timer.SECOND / 2, this.fireworkTransitionTick, this);
     }
    
     private fireworkTransitionTick = () => {
-        let elapsed = this.game.time.totalElapsedSeconds();
+        let elapsed = this.getGameTimeElapsed();
 
         for (let firework of this.fireworks) {
             if (!firework.hasStarted()) {
@@ -61,25 +66,23 @@ class MainState {
 
             if (!firework.hasFinished() && firework.getNextTransitionEventTime() <= elapsed) {
                 firework.runNextTransition();
-                this.setFireworkNextTransitionTime(firework);
             }
         }
     }
 
     private fireworkCreationTick = () => {
-        if (this.fireworkCounter >= this.fireworks.length) {
+        if (this.fireworkLaunchedCounter >= this.fireworks.length) {
             this.game.time.events.remove(this.fireworkCreationTimer);
             return;
         }
 
-        let firework = this.fireworks[this.fireworkCounter];
-        this.attachFireworkSprite(firework)
-        this.setFireworkNextTransitionTime(firework);
-        this.fireworkCounter++;
+        this.fireworks[this.fireworkLaunchedCounter].launch();
+
+        this.fireworkLaunchedCounter++;
     }
 
-    private setFireworkNextTransitionTime = (firework:Firework) => {
-        firework.setNextTransitionEventTime(this.game.time.totalElapsedSeconds() + 1);
+    private getGameTimeElapsed = () : number => {
+        return this.game.time.totalElapsedSeconds();
     }
 
     private attachFireworkSprite = (firework:Firework) => {
@@ -91,7 +94,7 @@ class MainState {
         } else {
             fireworkSprite.reset(startXPosition, 400);
         }
-        // TODO: Set the speed/direction
+
         firework.addSprite(fireworkSprite);
    }
 }

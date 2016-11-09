@@ -1,4 +1,4 @@
-class NumberToFireworkMapper {
+class FireworkFactory {
     public static colourSpectrum:Phaser.Color[] = [
         Phaser.Color.createColor(255, 165, 0),      // Orange
         Phaser.Color.createColor(0, 0, 255),        // Blue
@@ -12,12 +12,15 @@ class NumberToFireworkMapper {
         Phaser.Color.createColor(255, 215, 0),      // Gold
     ];
 
-    public map = (input:string) : Firework => {
+    constructor(readonly fireworkCallbacks: FireworkCallbacks) {
+    }
+
+    public create = (input:string) : Firework => {
         let position = input.substr(0, 2);
         let movementTransitions = input.substr(2, input.length - 3);
         let colour = input[input.length - 1]; 
         
-        let firework = new Firework(this.translateStartPosition(position));
+        let firework = new Firework(this.translateStartPosition(position), this.fireworkCallbacks);
         this.addMovementTransitions(firework, movementTransitions);
         this.addExplosionTransition(firework, colour);
 
@@ -45,7 +48,7 @@ class NumberToFireworkMapper {
     }
 
     private translateColour = (colour:string) :Phaser.Color => {
-        return NumberToFireworkMapper.colourSpectrum[parseInt(colour)];
+        return FireworkFactory.colourSpectrum[parseInt(colour)];
     }
 
     private translateAngle = (value:string) :number => {

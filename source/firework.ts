@@ -19,13 +19,24 @@ class FireworkTransition {
     }
 }
 
+interface FireworkCallbacks {
+    attachFireworkSprite(firework: Firework): void;
+    getGameTimeElapsed() : number;
+}
+
 class Firework {
     private transitionList:FireworkTransition[] = [];
     private spriteList:any[] = [];
     private state:FireworkState = FireworkState.InActive;
     private nextTransitionEventTime:number = 0;
     
-    constructor(public readonly startXPercentage:number) {
+    constructor(public readonly startXPercentage:number, readonly fireworkCallbacks: FireworkCallbacks) {
+    }
+
+    public launch = () => {
+        this.fireworkCallbacks.attachFireworkSprite(this);
+        // TODO: Set the speed/direction
+        this.setNextTransitionEventTime();
     }
 
     public addTransition = (transition: FireworkTransition) => {
@@ -52,14 +63,9 @@ class Firework {
         }
         if (this.transitionList.length === 0) {
             this.state = FireworkState.Finished;
+        } else {
+            this.setNextTransitionEventTime();
         }
-    }
-
-    public setNextTransitionEventTime = (nextTransitionEvent:number) => {
-        if (this.state === FireworkState.InActive) {
-            this.state = FireworkState.Active;
-        }
-        this.nextTransitionEventTime = nextTransitionEvent;
     }
 
     public getNextTransitionEventTime = () : number => {
@@ -72,6 +78,14 @@ class Firework {
 
     public hasFinished = () : boolean => {
         return this.state === FireworkState.Finished;
+    }
+
+    private setNextTransitionEventTime = () => {
+        if (this.state === FireworkState.InActive) {
+            this.state = FireworkState.Active;
+        }
+        // TODO: Maybe alter +1 based on something
+        this.nextTransitionEventTime = this.fireworkCallbacks.getGameTimeElapsed() + 1;
     }
 
     private handleMove = (transition:FireworkTransition) => {
