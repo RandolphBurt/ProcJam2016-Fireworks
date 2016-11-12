@@ -14,6 +14,7 @@ class MainState {
     private fireworkSpritesGroup:Phaser.Group;
     private fireworks:Firework[];
     private fireworkLaunchedCounter:number;
+    private gameClock:GameClock;
 
     public preload = () => {
         this.game.load.image('firework', 'assets/firework.png');
@@ -21,6 +22,13 @@ class MainState {
     }
 
     public create = () => {
+        this.initialiseGame();
+        this.generateFireworks();
+        this.startGame();
+    }
+
+    private initialiseGame = () => {
+        this.gameClock = new GameClock(this.game);
         this.game.physics.startSystem(Phaser.Physics.ARCADE);
         this.game.world.setBounds(0, 0, WorldConstants.WorldWidth, WorldConstants.WorldHeight);
 
@@ -28,9 +36,14 @@ class MainState {
         this.game.stage.backgroundColor = '#222222';
         this.game.renderer.renderSession.roundPixels = true;
         this.fireworkSpritesGroup = this.game.add.physicsGroup();
+    }
 
+    private generateFireworks = () => {
         this.fireworks = [];
-        let fireworkFactory = new FireworkFactory(new FireworkPhaserObjectHandler(this.game, this.fireworkSpritesGroup));
+        let fireworkFactory = new FireworkFactory(
+            new FireworkSpriteHandler(this.game, this.fireworkSpritesGroup), 
+            new FireworkParticleHandler(this.game), 
+            this.gameClock);
 
         let numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.MinLengthNumberGeneration, WorldConstants.MaxLengthNumberGeneration);
         let numbers = numberProceduralGeneration.generate(1000);
@@ -38,14 +51,16 @@ class MainState {
         for (var number of numbers) {
             this.fireworks.push(fireworkFactory.create(number));
         }
+    }
 
+    private startGame = () => {
         this.fireworkLaunchedCounter = 0;
         this.fireworkCreationTimer = this.game.time.events.loop(WorldConstants.FireworkCreationTick, this.fireworkCreationTick, this);
         this.fireworkTransitionTimer = this.game.time.events.loop(WorldConstants.FireworkTransitionTick, this.fireworkTransitionTick, this);
     }
    
     private fireworkTransitionTick = () => {
-        let elapsed = this.getGameTimeElapsed();
+        let elapsed = this.gameClock.getGameTimeElapsed();
 
         for (let firework of this.fireworks) {
             if (!firework.hasStarted()) {
@@ -68,9 +83,5 @@ class MainState {
         this.fireworks[this.fireworkLaunchedCounter].launch();
 
         this.fireworkLaunchedCounter++;
-    }
-
-    private getGameTimeElapsed = () : number => {
-        return this.game.time.totalElapsedSeconds();
     }
 }

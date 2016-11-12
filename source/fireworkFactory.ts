@@ -12,7 +12,10 @@ class FireworkFactory {
         0xFFD700, // Gold
     ];
 
-    constructor(readonly fireworkPhaserObjectHandler: FireworkPhaserObjectHandler) {
+    constructor(
+        readonly fireworkSpriteHandler: FireworkSpriteHandler,
+        readonly fireworkParticleHandler:FireworkParticleHandler,
+        readonly gameClock:GameClock) {
     }
 
     public create = (input:string) : Firework => {
@@ -20,7 +23,7 @@ class FireworkFactory {
         let movementTransitions = input.substr(2, input.length - 3);
         let colour = input[input.length - 1]; 
         
-        let firework = new Firework(this.translateStartPosition(position), this.fireworkPhaserObjectHandler);
+        let firework = new Firework(this.translateStartPosition(position), this.fireworkSpriteHandler, this.fireworkParticleHandler, this.gameClock);
         this.addMovementTransitions(firework, movementTransitions);
         this.addExplosionTransition(firework, colour);
 

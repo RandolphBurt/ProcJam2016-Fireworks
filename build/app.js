@@ -22,19 +22,21 @@ var FireworkTransition = (function () {
     return FireworkTransition;
 }());
 var Firework = (function () {
-    function Firework(startXPercentage, fireworkPhaserObjectHandler) {
+    function Firework(startXPercentage, fireworkSpriteHandler, fireworkParticleHandler, gameClock) {
         var _this = this;
         this.startXPercentage = startXPercentage;
-        this.fireworkPhaserObjectHandler = fireworkPhaserObjectHandler;
+        this.fireworkSpriteHandler = fireworkSpriteHandler;
+        this.fireworkParticleHandler = fireworkParticleHandler;
+        this.gameClock = gameClock;
         this.transitionList = [];
         this.spriteList = [];
         this.particleEmitterList = [];
         this.state = FireworkState.InActive;
         this.nextTransitionEventTime = 0;
         this.launch = function () {
-            var sprite = _this.fireworkPhaserObjectHandler.createFireworkSprite(_this.startXPercentage, -90, 50);
+            var sprite = _this.fireworkSpriteHandler.createFireworkSprite(_this.startXPercentage, -90, 50);
             _this.spriteList.push(sprite);
-            var particleEmitter = _this.fireworkPhaserObjectHandler.createParticleEmitter();
+            var particleEmitter = _this.fireworkParticleHandler.createParticleEmitter();
             _this.particleEmitterList.push(particleEmitter);
             _this.setNextTransitionEventTime();
         };
@@ -74,13 +76,16 @@ var Firework = (function () {
             if (_this.state === FireworkState.InActive) {
                 _this.state = FireworkState.Active;
             }
-            _this.nextTransitionEventTime = _this.fireworkPhaserObjectHandler.getGameTimeElapsed() + 1;
+            _this.nextTransitionEventTime = _this.gameClock.getGameTimeElapsed() + 1;
         };
         this.handleMove = function (transition) {
+            for (var sprite in _this.spriteList) {
+            }
         };
         this.handleExplosion = function (transition) {
             _this.emitParticles(transition.color);
-            _this.fireworkPhaserObjectHandler.disposePhaserObjects(_this.spriteList, _this.particleEmitterList);
+            _this.fireworkSpriteHandler.disposeSprites(_this.spriteList);
+            _this.fireworkParticleHandler.disposeEmitters(_this.particleEmitterList);
         };
         this.handleSplit = function (transition) {
             _this.emitParticles(transition.color);
@@ -99,14 +104,16 @@ var Firework = (function () {
     return Firework;
 }());
 var FireworkFactory = (function () {
-    function FireworkFactory(fireworkPhaserObjectHandler) {
+    function FireworkFactory(fireworkSpriteHandler, fireworkParticleHandler, gameClock) {
         var _this = this;
-        this.fireworkPhaserObjectHandler = fireworkPhaserObjectHandler;
+        this.fireworkSpriteHandler = fireworkSpriteHandler;
+        this.fireworkParticleHandler = fireworkParticleHandler;
+        this.gameClock = gameClock;
         this.create = function (input) {
             var position = input.substr(0, 2);
             var movementTransitions = input.substr(2, input.length - 3);
             var colour = input[input.length - 1];
-            var firework = new Firework(_this.translateStartPosition(position), _this.fireworkPhaserObjectHandler);
+            var firework = new Firework(_this.translateStartPosition(position), _this.fireworkSpriteHandler, _this.fireworkParticleHandler, _this.gameClock);
             _this.addMovementTransitions(firework, movementTransitions);
             _this.addExplosionTransition(firework, colour);
             return firework;
@@ -151,14 +158,44 @@ var FireworkFactory = (function () {
     ];
     return FireworkFactory;
 }());
-var FireworkPhaserObjectHandler = (function () {
-    function FireworkPhaserObjectHandler(game, fireworkSpritesGroup) {
+var FireworkParticleHandler = (function () {
+    function FireworkParticleHandler(game) {
+        var _this = this;
+        this.game = game;
+        this.createParticleEmitter = function () {
+            var particleEmitter = _this.game.add.emitter(0, 0, WorldConstants.ExplosionParticleCount);
+            particleEmitter.makeParticles('particle');
+            particleEmitter.autoAlpha = true;
+            particleEmitter.setAlpha(1, 0, WorldConstants.ParticleLifespanMilliseconds);
+            particleEmitter.gravity = WorldConstants.Gravity;
+            return particleEmitter;
+        };
+        this.emitParticles = function (spriteList, particleEmitterList, color) {
+            for (var i = 0; i < spriteList.length; i++) {
+                var particleEmitter = particleEmitterList[i];
+                var sprite = spriteList[i];
+                particleEmitter.x = sprite.x;
+                particleEmitter.y = sprite.y;
+                particleEmitter.forEach(function (particle) { particle.tint = color; }, _this);
+                particleEmitter.start(true, WorldConstants.ParticleLifespanMilliseconds, null, WorldConstants.ExplosionParticleCount);
+            }
+        };
+        this.disposeEmitters = function (particleEmitterList) {
+            _this.game.time.events.add(WorldConstants.ParticleLifespanMilliseconds, function () {
+                for (var _i = 0, particleEmitterList_1 = particleEmitterList; _i < particleEmitterList_1.length; _i++) {
+                    var emitter = particleEmitterList_1[_i];
+                    emitter.destroy();
+                }
+            }, _this);
+        };
+    }
+    return FireworkParticleHandler;
+}());
+var FireworkSpriteHandler = (function () {
+    function FireworkSpriteHandler(game, fireworkSpritesGroup) {
         var _this = this;
         this.game = game;
         this.fireworkSpritesGroup = fireworkSpritesGroup;
-        this.getGameTimeElapsed = function () {
-            return _this.game.time.totalElapsedSeconds();
-        };
         this.createFireworkSprite = function (startXPercentage, angle, speed) {
             var fireworkSprite = _this.fireworkSpritesGroup.getFirstExists(false);
             var startXPosition = WorldConstants.WorldWidth * startXPercentage / 100;
@@ -172,28 +209,24 @@ var FireworkPhaserObjectHandler = (function () {
             fireworkSprite.body.velocity.copyFrom(_this.game.physics.arcade.velocityFromAngle(angle, speed));
             return fireworkSprite;
         };
-        this.createParticleEmitter = function () {
-            var particleEmitter = _this.game.add.emitter(0, 0, WorldConstants.ExplosionParticleCount);
-            particleEmitter.makeParticles('particle');
-            particleEmitter.autoAlpha = true;
-            particleEmitter.setAlpha(1, 0, WorldConstants.ParticleLifespanMilliseconds);
-            particleEmitter.gravity = WorldConstants.Gravity;
-            return particleEmitter;
-        };
-        this.disposePhaserObjects = function (spriteList, particleEmitterList) {
+        this.disposeSprites = function (spriteList) {
             for (var _i = 0, spriteList_1 = spriteList; _i < spriteList_1.length; _i++) {
                 var sprite = spriteList_1[_i];
                 sprite.destroy();
             }
-            _this.game.time.events.add(WorldConstants.ParticleLifespanMilliseconds, function () {
-                for (var _i = 0, particleEmitterList_1 = particleEmitterList; _i < particleEmitterList_1.length; _i++) {
-                    var emitter = particleEmitterList_1[_i];
-                    emitter.destroy();
-                }
-            }, _this);
         };
     }
-    return FireworkPhaserObjectHandler;
+    return FireworkSpriteHandler;
+}());
+var GameClock = (function () {
+    function GameClock(game) {
+        var _this = this;
+        this.game = game;
+        this.getGameTimeElapsed = function () {
+            return _this.game.time.totalElapsedSeconds();
+        };
+    }
+    return GameClock;
 }());
 var Key = Phaser.Key;
 var Sprite = Phaser.Sprite;
@@ -207,26 +240,36 @@ var MainState = (function () {
             _this.game.load.image('particle', 'assets/particle.png');
         };
         this.create = function () {
+            _this.initialiseGame();
+            _this.generateFireworks();
+            _this.startGame();
+        };
+        this.initialiseGame = function () {
+            _this.gameClock = new GameClock(_this.game);
             _this.game.physics.startSystem(Phaser.Physics.ARCADE);
             _this.game.world.setBounds(0, 0, WorldConstants.WorldWidth, WorldConstants.WorldHeight);
             _this.game.scale.pageAlignHorizontally = true;
             _this.game.stage.backgroundColor = '#222222';
             _this.game.renderer.renderSession.roundPixels = true;
             _this.fireworkSpritesGroup = _this.game.add.physicsGroup();
+        };
+        this.generateFireworks = function () {
             _this.fireworks = [];
-            var fireworkFactory = new FireworkFactory(new FireworkPhaserObjectHandler(_this.game, _this.fireworkSpritesGroup));
+            var fireworkFactory = new FireworkFactory(new FireworkSpriteHandler(_this.game, _this.fireworkSpritesGroup), new FireworkParticleHandler(_this.game), _this.gameClock);
             var numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.MinLengthNumberGeneration, WorldConstants.MaxLengthNumberGeneration);
             var numbers = numberProceduralGeneration.generate(1000);
             for (var _i = 0, numbers_1 = numbers; _i < numbers_1.length; _i++) {
                 var number = numbers_1[_i];
                 _this.fireworks.push(fireworkFactory.create(number));
             }
+        };
+        this.startGame = function () {
             _this.fireworkLaunchedCounter = 0;
             _this.fireworkCreationTimer = _this.game.time.events.loop(WorldConstants.FireworkCreationTick, _this.fireworkCreationTick, _this);
             _this.fireworkTransitionTimer = _this.game.time.events.loop(WorldConstants.FireworkTransitionTick, _this.fireworkTransitionTick, _this);
         };
         this.fireworkTransitionTick = function () {
-            var elapsed = _this.getGameTimeElapsed();
+            var elapsed = _this.gameClock.getGameTimeElapsed();
             for (var _i = 0, _a = _this.fireworks; _i < _a.length; _i++) {
                 var firework = _a[_i];
                 if (!firework.hasStarted()) {
@@ -244,9 +287,6 @@ var MainState = (function () {
             }
             _this.fireworks[_this.fireworkLaunchedCounter].launch();
             _this.fireworkLaunchedCounter++;
-        };
-        this.getGameTimeElapsed = function () {
-            return _this.game.time.totalElapsedSeconds();
         };
         this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
     }

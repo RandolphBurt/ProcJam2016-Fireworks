@@ -23,15 +23,20 @@ class Firework {
     private state:FireworkState = FireworkState.InActive;
     private nextTransitionEventTime:number = 0;
     
-    constructor(public readonly startXPercentage:number, readonly fireworkPhaserObjectHandler: FireworkPhaserObjectHandler) {
-    }
+    constructor(
+        public readonly startXPercentage:number,
+        readonly fireworkSpriteHandler: FireworkSpriteHandler, 
+        readonly fireworkParticleHandler: FireworkParticleHandler,
+        readonly gameClock:GameClock) 
+        {            
+        }
 
     public launch = () => {
         // TODO: Set the speed/direction based on something?
-        let sprite = this.fireworkPhaserObjectHandler.createFireworkSprite(this.startXPercentage, -90, 50);
+        let sprite = this.fireworkSpriteHandler.createFireworkSprite(this.startXPercentage, -90, 50);
         this.spriteList.push(sprite);
 
-        let particleEmitter = this.fireworkPhaserObjectHandler.createParticleEmitter();
+        let particleEmitter = this.fireworkParticleHandler.createParticleEmitter();
         this.particleEmitterList.push(particleEmitter);
         this.setNextTransitionEventTime();
     }
@@ -78,17 +83,21 @@ class Firework {
             this.state = FireworkState.Active;
         }
         // TODO: Maybe alter +1 based on something
-        this.nextTransitionEventTime = this.fireworkPhaserObjectHandler.getGameTimeElapsed() + 1;
+        this.nextTransitionEventTime = this.gameClock.getGameTimeElapsed() + 1;
     }
 
     private handleMove = (transition:FireworkTransition) => {
         // TODO: Foreach sprite, set the angle
+        for (let sprite in this.spriteList) {
+            //sprite.
+        }
     }
 
     private handleExplosion = (transition:FireworkTransition) => {
         // TODO: Foreach sprite, create particles (with transition color) and then kill sprite list
         this.emitParticles(transition.color);
-        this.fireworkPhaserObjectHandler.disposePhaserObjects(this.spriteList, this.particleEmitterList);
+        this.fireworkSpriteHandler.disposeSprites(this.spriteList);
+        this.fireworkParticleHandler.disposeEmitters( this.particleEmitterList);
     }
 
     private handleSplit = (transition:FireworkTransition) => {
