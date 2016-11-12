@@ -29,11 +29,14 @@ var Firework = (function () {
         this.fireworkCallbacks = fireworkCallbacks;
         this.transitionList = [];
         this.spriteList = [];
+        this.particleEmitterList = [];
         this.state = FireworkState.InActive;
         this.nextTransitionEventTime = 0;
         this.launch = function () {
-            var sprite = _this.fireworkCallbacks.createFireworkSprite(_this.startXPercentage, -90, 300);
+            var sprite = _this.fireworkCallbacks.createFireworkSprite(_this.startXPercentage, -90, 50);
             _this.spriteList.push(sprite);
+            var particleEmitter = _this.fireworkCallbacks.createParticleEmitter();
+            _this.particleEmitterList.push(particleEmitter);
             _this.setNextTransitionEventTime();
         };
         this.addTransition = function (transition) {
@@ -77,8 +80,24 @@ var Firework = (function () {
         this.handleMove = function (transition) {
         };
         this.handleExplosion = function (transition) {
+            _this.explodeSprites(transition.color);
+            for (var _i = 0, _a = _this.spriteList; _i < _a.length; _i++) {
+                var sprite = _a[_i];
+                sprite.destroy();
+            }
         };
         this.handleSplit = function (transition) {
+            _this.explodeSprites(transition.color);
+        };
+        this.explodeSprites = function (color) {
+            for (var i = 0; i < _this.spriteList.length; i++) {
+                var particleEmitter = _this.particleEmitterList[i];
+                var sprite = _this.spriteList[i];
+                particleEmitter.x = sprite.x;
+                particleEmitter.y = sprite.y;
+                particleEmitter.forEach(function (particle) { particle.tint = color; }, _this);
+                particleEmitter.start(true, WorldConstants.ParticleLifespanMilliseconds, null, WorldConstants.ExplosionParticleCount);
+            }
         };
     }
     return Firework;
@@ -97,14 +116,14 @@ var FireworkFactory = (function () {
             return firework;
         };
         this.addExplosionTransition = function (firework, transition) {
-            firework.addTransition(new FireworkTransition(FireworkTransitionType.Explode, _this.translateColour(transition)));
+            firework.addTransition(new FireworkTransition(FireworkTransitionType.Explode, null, _this.translateColour(transition)));
         };
         this.addMovementTransitions = function (firework, transitions) {
             var previousCharacter = null;
             for (var _i = 0, transitions_1 = transitions; _i < transitions_1.length; _i++) {
                 var c = transitions_1[_i];
                 if (previousCharacter === c) {
-                    firework.addTransition(new FireworkTransition(FireworkTransitionType.Split, _this.translateColour(c)));
+                    firework.addTransition(new FireworkTransition(FireworkTransitionType.Split, null, _this.translateColour(c)));
                 }
                 else {
                     firework.addTransition(new FireworkTransition(FireworkTransitionType.Move, _this.translateAngle(c)));
@@ -123,35 +142,38 @@ var FireworkFactory = (function () {
         };
     }
     FireworkFactory.colourSpectrum = [
-        Phaser.Color.createColor(255, 165, 0),
-        Phaser.Color.createColor(0, 0, 255),
-        Phaser.Color.createColor(255, 0, 0),
-        Phaser.Color.createColor(255, 0, 255),
-        Phaser.Color.createColor(0, 255, 0),
-        Phaser.Color.createColor(0, 255, 255),
-        Phaser.Color.createColor(255, 255, 0),
-        Phaser.Color.createColor(255, 255, 255),
-        Phaser.Color.createColor(147, 112, 219),
-        Phaser.Color.createColor(255, 215, 0),
+        0xFFA500,
+        0x0000FF,
+        0xFF0000,
+        0xFF00FF,
+        0x00FF00,
+        0x00FFFF,
+        0xFFFF00,
+        0xFFFFFF,
+        0x9370DB,
+        0xFFD700,
     ];
     return FireworkFactory;
 }());
 var Key = Phaser.Key;
 var Sprite = Phaser.Sprite;
 var Game = Phaser.Game;
+var Emitter = Phaser.Particles.Arcade.Emitter;
 var MainState = (function () {
     function MainState() {
         var _this = this;
         this.preload = function () {
             _this.game.load.image('firework', 'assets/firework.png');
+            _this.game.load.image('particle', 'assets/particle.png');
         };
         this.init = function () {
             _this.fireworks = [];
-            var numberProceduralGeneration = new NumberProceduralGeneration(324, 5, 25);
+            var numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.MinLengthNumberGeneration, WorldConstants.MaxLengthNumberGeneration);
             var numbers = numberProceduralGeneration.generate(1000);
             var fireworkCallbacks = {
                 createFireworkSprite: _this.createFireworkSprite,
-                getGameTimeElapsed: _this.getGameTimeElapsed
+                getGameTimeElapsed: _this.getGameTimeElapsed,
+                createParticleEmitter: _this.createParticleEmitter,
             };
             var fireworkFactory = new FireworkFactory(fireworkCallbacks);
             for (var _i = 0, numbers_1 = numbers; _i < numbers_1.length; _i++) {
@@ -161,14 +183,14 @@ var MainState = (function () {
         };
         this.create = function () {
             _this.game.physics.startSystem(Phaser.Physics.ARCADE);
-            _this.game.world.setBounds(0, 0, 800, 600);
+            _this.game.world.setBounds(0, 0, WorldConstants.WorldWidth, WorldConstants.WorldHeight);
             _this.game.scale.pageAlignHorizontally = true;
             _this.game.stage.backgroundColor = '#ffffff';
             _this.game.renderer.renderSession.roundPixels = true;
             _this.fireworkSpritesGroup = _this.game.add.physicsGroup();
             _this.fireworkLaunchedCounter = 0;
-            _this.fireworkCreationTimer = _this.game.time.events.loop(Phaser.Timer.SECOND / 5, _this.fireworkCreationTick, _this);
-            _this.fireworkTransitionTimer = _this.game.time.events.loop(Phaser.Timer.SECOND / 2, _this.fireworkTransitionTick, _this);
+            _this.fireworkCreationTimer = _this.game.time.events.loop(WorldConstants.FireworkCreationTick, _this.fireworkCreationTick, _this);
+            _this.fireworkTransitionTimer = _this.game.time.events.loop(WorldConstants.FireworkTransitionTick, _this.fireworkTransitionTick, _this);
         };
         this.fireworkTransitionTick = function () {
             var elapsed = _this.getGameTimeElapsed();
@@ -195,18 +217,26 @@ var MainState = (function () {
         };
         this.createFireworkSprite = function (startXPercentage, angle, speed) {
             var fireworkSprite = _this.fireworkSpritesGroup.getFirstExists(false);
-            var startXPosition = 800 * startXPercentage / 100;
+            var startXPosition = WorldConstants.WorldWidth * startXPercentage / 100;
             if (!fireworkSprite) {
-                fireworkSprite = _this.fireworkSpritesGroup.create(startXPosition, 400, 'firework');
+                fireworkSprite = _this.fireworkSpritesGroup.create(startXPosition, WorldConstants.GroundLevel, 'firework');
             }
             else {
-                fireworkSprite.reset(startXPosition, 400);
+                fireworkSprite.reset(startXPosition, WorldConstants.GroundLevel);
             }
             _this.game.physics.enable(fireworkSprite, Phaser.Physics.ARCADE);
             fireworkSprite.body.velocity.copyFrom(_this.game.physics.arcade.velocityFromAngle(angle, speed));
             return fireworkSprite;
         };
-        this.game = new Game(800, 600, Phaser.AUTO, 'content', { init: this.init, preload: this.preload, create: this.create });
+        this.createParticleEmitter = function () {
+            var particleEmitter = _this.game.add.emitter(0, 0, WorldConstants.ExplosionParticleCount);
+            particleEmitter.makeParticles('particle');
+            particleEmitter.gravity = WorldConstants.Gravity;
+            return particleEmitter;
+        };
+        this.colourParticles = function (particle) {
+        };
+        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { init: this.init, preload: this.preload, create: this.create });
     }
     return MainState;
 }());
@@ -250,5 +280,20 @@ var NumberProceduralGeneration = (function () {
         };
     }
     return NumberProceduralGeneration;
+}());
+var WorldConstants = (function () {
+    function WorldConstants() {
+    }
+    WorldConstants.WorldWidth = 800;
+    WorldConstants.WorldHeight = 600;
+    WorldConstants.GroundLevel = 568;
+    WorldConstants.MinLengthNumberGeneration = 5;
+    WorldConstants.MaxLengthNumberGeneration = 25;
+    WorldConstants.FireworkCreationTick = Phaser.Timer.SECOND / 5;
+    WorldConstants.FireworkTransitionTick = Phaser.Timer.SECOND / 2;
+    WorldConstants.Gravity = 50;
+    WorldConstants.ParticleLifespanMilliseconds = 10000;
+    WorldConstants.ExplosionParticleCount = 100;
+    return WorldConstants;
 }());
 //# sourceMappingURL=app.js.map

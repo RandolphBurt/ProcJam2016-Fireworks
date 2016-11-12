@@ -1,15 +1,15 @@
 class FireworkFactory {
-    public static colourSpectrum:Phaser.Color[] = [
-        Phaser.Color.createColor(255, 165, 0),      // Orange
-        Phaser.Color.createColor(0, 0, 255),        // Blue
-        Phaser.Color.createColor(255, 0, 0),        // Red
-        Phaser.Color.createColor(255, 0, 255),      // Magenta
-        Phaser.Color.createColor(0, 255, 0),        // Green
-        Phaser.Color.createColor(0, 255, 255),      // Cyan
-        Phaser.Color.createColor(255, 255, 0),      // Yellow
-        Phaser.Color.createColor(255, 255, 255),    // White
-        Phaser.Color.createColor(147, 112, 219),    // Medium Purple 
-        Phaser.Color.createColor(255, 215, 0),      // Gold
+    public static colourSpectrum:number[] = [
+        0xFFA500, // Orange
+        0x0000FF, // Blue
+        0xFF0000, // Red
+        0xFF00FF, // Magenta
+        0x00FF00, // Green
+        0x00FFFF, // Cyan
+        0xFFFF00, // Yellow
+        0xFFFFFF, // White
+        0x9370DB, // Medium Purple 
+        0xFFD700, // Gold
     ];
 
     constructor(readonly fireworkCallbacks: FireworkCallbacks) {
@@ -28,14 +28,14 @@ class FireworkFactory {
     }
 
     private addExplosionTransition = (firework:Firework, transition:string) => {
-        firework.addTransition(new FireworkTransition(FireworkTransitionType.Explode, this.translateColour(transition)));
+        firework.addTransition(new FireworkTransition(FireworkTransitionType.Explode, null, this.translateColour(transition)));
     }
 
     private addMovementTransitions = (firework:Firework, transitions:string) => {
         let previousCharacter:string = null;
         for (var c of transitions) {
             if (previousCharacter === c) {
-                firework.addTransition(new FireworkTransition(FireworkTransitionType.Split, this.translateColour(c)));
+                firework.addTransition(new FireworkTransition(FireworkTransitionType.Split, null, this.translateColour(c)));
             } else {
                 firework.addTransition(new FireworkTransition(FireworkTransitionType.Move, this.translateAngle(c)));
             }
@@ -47,7 +47,7 @@ class FireworkFactory {
         return parseInt(position);
     }
 
-    private translateColour = (colour:string) :Phaser.Color => {
+    private translateColour = (colour:string) :number => {
         return FireworkFactory.colourSpectrum[parseInt(colour)];
     }
 

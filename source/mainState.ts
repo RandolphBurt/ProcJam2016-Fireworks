@@ -1,10 +1,11 @@
 import Key = Phaser.Key;
 import Sprite = Phaser.Sprite;
 import Game = Phaser.Game;
+import Emitter = Phaser.Particles.Arcade.Emitter;
 
 class MainState {
     constructor() {
-        this.game = new Game(800, 600, Phaser.AUTO, 'content', { init: this.init, preload: this.preload, create: this.create });
+        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { init: this.init, preload: this.preload, create: this.create });
     }
 
     private game :Game;
@@ -16,16 +17,18 @@ class MainState {
 
     public preload = () => {
         this.game.load.image('firework', 'assets/firework.png');
+        this.game.load.image('particle', 'assets/particle.png');
     }
 
     public init = () => {
         this.fireworks = [];
-        let numberProceduralGeneration = new NumberProceduralGeneration(324, 5, 25);
+        let numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.MinLengthNumberGeneration, WorldConstants.MaxLengthNumberGeneration);
         let numbers = numberProceduralGeneration.generate(1000);
 
         let fireworkCallbacks: FireworkCallbacks = {
             createFireworkSprite: this.createFireworkSprite, 
-            getGameTimeElapsed: this.getGameTimeElapsed
+            getGameTimeElapsed: this.getGameTimeElapsed,
+            createParticleEmitter: this.createParticleEmitter,
         };
 
         let fireworkFactory = new FireworkFactory(fireworkCallbacks);
@@ -36,26 +39,16 @@ class MainState {
 
     public create = () => {
         this.game.physics.startSystem(Phaser.Physics.ARCADE);
-        this.game.world.setBounds(0, 0, 800, 600);
+        this.game.world.setBounds(0, 0, WorldConstants.WorldWidth, WorldConstants.WorldHeight);
 
         this.game.scale.pageAlignHorizontally = true;
         this.game.stage.backgroundColor = '#ffffff';
         this.game.renderer.renderSession.roundPixels = true;
         this.fireworkSpritesGroup = this.game.add.physicsGroup();
 
-        /* temp below
-        let fireworkSprite = this.fireworkSpritesGroup.getFirstExists(false);
-
-        if (!fireworkSprite) {
-            fireworkSprite = this.fireworkSpritesGroup.create(400, 400, 'firework');
-        } else {
-            fireworkSprite.reset(400, 400);
-        }        
-        */
-
         this.fireworkLaunchedCounter = 0;
-        this.fireworkCreationTimer = this.game.time.events.loop(Phaser.Timer.SECOND / 5, this.fireworkCreationTick, this);
-        this.fireworkTransitionTimer = this.game.time.events.loop(Phaser.Timer.SECOND / 2, this.fireworkTransitionTick, this);
+        this.fireworkCreationTimer = this.game.time.events.loop(WorldConstants.FireworkCreationTick, this.fireworkCreationTick, this);
+        this.fireworkTransitionTimer = this.game.time.events.loop(WorldConstants.FireworkTransitionTick, this.fireworkTransitionTick, this);
     }
    
     private fireworkTransitionTick = () => {
@@ -91,16 +84,29 @@ class MainState {
     private createFireworkSprite = (startXPercentage:number, angle:number, speed:number) : any => {
         let fireworkSprite = this.fireworkSpritesGroup.getFirstExists(false);
 
-        let startXPosition:number = 800 * startXPercentage / 100;
+        let startXPosition:number = WorldConstants.WorldWidth * startXPercentage / 100;
         if (!fireworkSprite) {
-            fireworkSprite = this.fireworkSpritesGroup.create(startXPosition, 400, 'firework');
+            fireworkSprite = this.fireworkSpritesGroup.create(startXPosition, WorldConstants.GroundLevel, 'firework');
         } else {
-            fireworkSprite.reset(startXPosition, 400);
+            fireworkSprite.reset(startXPosition, WorldConstants.GroundLevel);
         }
         this.game.physics.enable(fireworkSprite, Phaser.Physics.ARCADE);
 
         fireworkSprite.body.velocity.copyFrom(this.game.physics.arcade.velocityFromAngle(angle, speed));
 
         return fireworkSprite;
+   }
+
+   private createParticleEmitter = () : Emitter => {
+        let particleEmitter = this.game.add.emitter(0, 0, WorldConstants.ExplosionParticleCount);
+        particleEmitter.makeParticles('particle');
+
+        particleEmitter.gravity = WorldConstants.Gravity;
+
+        return particleEmitter;       
+   }
+
+   private colourParticles = (particle:any) => {
+
    }
 }
