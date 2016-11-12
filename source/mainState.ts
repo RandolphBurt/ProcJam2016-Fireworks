@@ -29,6 +29,7 @@ class MainState {
             createFireworkSprite: this.createFireworkSprite, 
             getGameTimeElapsed: this.getGameTimeElapsed,
             createParticleEmitter: this.createParticleEmitter,
+            disposePhaserObjects: this.disposePhaserObjects
         };
 
         let fireworkFactory = new FireworkFactory(fireworkCallbacks);
@@ -95,18 +96,28 @@ class MainState {
         fireworkSprite.body.velocity.copyFrom(this.game.physics.arcade.velocityFromAngle(angle, speed));
 
         return fireworkSprite;
-   }
+    }
 
-   private createParticleEmitter = () : Emitter => {
+    private createParticleEmitter = () : Emitter => {
         let particleEmitter = this.game.add.emitter(0, 0, WorldConstants.ExplosionParticleCount);
         particleEmitter.makeParticles('particle');
+        particleEmitter.autoAlpha = true;
+        particleEmitter.setAlpha(1, 0, WorldConstants.ParticleLifespanMilliseconds);
 
         particleEmitter.gravity = WorldConstants.Gravity;
 
         return particleEmitter;       
-   }
+    }
 
-   private colourParticles = (particle:any) => {
+    private disposePhaserObjects= (spriteList:any[], particleEmitterList:Emitter[]) => {
+        for (let sprite of spriteList) {
+            sprite.destroy();
+        }
 
+        this.game.time.events.add(WorldConstants.ParticleLifespanMilliseconds, () => {
+            for (let emitter of particleEmitterList) {
+                emitter.destroy();
+            }
+        }, this);
    }
 }

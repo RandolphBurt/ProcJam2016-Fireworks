@@ -11,6 +11,6 @@ class WorldConstants {
 
     public static Gravity:number = 50;
 
-    public static ParticleLifespanMilliseconds:number = 10000;
+    public static ParticleLifespanMilliseconds:number = 2000;
     public static ExplosionParticleCount:number = 100;
 }

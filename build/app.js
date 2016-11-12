@@ -80,16 +80,13 @@ var Firework = (function () {
         this.handleMove = function (transition) {
         };
         this.handleExplosion = function (transition) {
-            _this.explodeSprites(transition.color);
-            for (var _i = 0, _a = _this.spriteList; _i < _a.length; _i++) {
-                var sprite = _a[_i];
-                sprite.destroy();
-            }
+            _this.emitParticles(transition.color);
+            _this.fireworkCallbacks.disposePhaserObjects(_this.spriteList, _this.particleEmitterList);
         };
         this.handleSplit = function (transition) {
-            _this.explodeSprites(transition.color);
+            _this.emitParticles(transition.color);
         };
-        this.explodeSprites = function (color) {
+        this.emitParticles = function (color) {
             for (var i = 0; i < _this.spriteList.length; i++) {
                 var particleEmitter = _this.particleEmitterList[i];
                 var sprite = _this.spriteList[i];
@@ -174,6 +171,7 @@ var MainState = (function () {
                 createFireworkSprite: _this.createFireworkSprite,
                 getGameTimeElapsed: _this.getGameTimeElapsed,
                 createParticleEmitter: _this.createParticleEmitter,
+                disposePhaserObjects: _this.disposePhaserObjects
             };
             var fireworkFactory = new FireworkFactory(fireworkCallbacks);
             for (var _i = 0, numbers_1 = numbers; _i < numbers_1.length; _i++) {
@@ -231,10 +229,22 @@ var MainState = (function () {
         this.createParticleEmitter = function () {
             var particleEmitter = _this.game.add.emitter(0, 0, WorldConstants.ExplosionParticleCount);
             particleEmitter.makeParticles('particle');
+            particleEmitter.autoAlpha = true;
+            particleEmitter.setAlpha(1, 0, WorldConstants.ParticleLifespanMilliseconds);
             particleEmitter.gravity = WorldConstants.Gravity;
             return particleEmitter;
         };
-        this.colourParticles = function (particle) {
+        this.disposePhaserObjects = function (spriteList, particleEmitterList) {
+            for (var _i = 0, spriteList_1 = spriteList; _i < spriteList_1.length; _i++) {
+                var sprite = spriteList_1[_i];
+                sprite.destroy();
+            }
+            _this.game.time.events.add(WorldConstants.ParticleLifespanMilliseconds, function () {
+                for (var _i = 0, particleEmitterList_1 = particleEmitterList; _i < particleEmitterList_1.length; _i++) {
+                    var emitter = particleEmitterList_1[_i];
+                    emitter.destroy();
+                }
+            }, _this);
         };
         this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { init: this.init, preload: this.preload, create: this.create });
     }
@@ -292,7 +302,7 @@ var WorldConstants = (function () {
     WorldConstants.FireworkCreationTick = Phaser.Timer.SECOND / 5;
     WorldConstants.FireworkTransitionTick = Phaser.Timer.SECOND / 2;
     WorldConstants.Gravity = 50;
-    WorldConstants.ParticleLifespanMilliseconds = 10000;
+    WorldConstants.ParticleLifespanMilliseconds = 2000;
     WorldConstants.ExplosionParticleCount = 100;
     return WorldConstants;
 }());
