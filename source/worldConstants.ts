@@ -1,7 +1,7 @@
 class WorldConstants {
     public static WorldWidth:number = 800;
     public static WorldHeight:number = 600;
-    public static GroundLevel:number = 568;
+    public static GroundLevel:number = 584;
 
     public static MinLengthNumberGeneration = 5;
     public static MaxLengthNumberGeneration = 25;

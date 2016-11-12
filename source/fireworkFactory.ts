@@ -55,6 +55,6 @@ class FireworkFactory {
     }
 
     private translateAngle = (value:string) :number => {
-        return (parseInt(value) * 90) - 45;
+        return (parseInt(value) * 10) - 45;
     }
 }

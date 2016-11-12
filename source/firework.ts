@@ -11,7 +11,7 @@ enum FireworkState {
 }
 
 class FireworkTransition {
-    constructor(public transitionType:FireworkTransitionType, public angle?:number, public color?:number) {
+    constructor(public transitionType:FireworkTransitionType, public angularVelocity?:number, public color?:number) {
     }
 }
 
@@ -78,6 +78,12 @@ class Firework {
         return this.state === FireworkState.Finished;
     }
 
+    public setVelocity = () => {
+        if (this.state == FireworkState.Active) {
+            this.fireworkSpriteHandler.setVelocity(this.spriteList);
+        }
+    }
+
     private setNextTransitionEventTime = () => {
         if (this.state === FireworkState.InActive) {
             this.state = FireworkState.Active;
@@ -87,14 +93,10 @@ class Firework {
     }
 
     private handleMove = (transition:FireworkTransition) => {
-        // TODO: Foreach sprite, set the angle
-        for (let sprite in this.spriteList) {
-            //sprite.
-        }
+        this.fireworkSpriteHandler.rotateSprites(this.spriteList, transition.angularVelocity);
     }
 
     private handleExplosion = (transition:FireworkTransition) => {
-        // TODO: Foreach sprite, create particles (with transition color) and then kill sprite list
         this.emitParticles(transition.color);
         this.fireworkSpriteHandler.disposeSprites(this.spriteList);
         this.fireworkParticleHandler.disposeEmitters( this.particleEmitterList);

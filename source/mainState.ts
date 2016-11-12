@@ -5,7 +5,7 @@ import Emitter = Phaser.Particles.Arcade.Emitter;
 
 class MainState {
     constructor() {
-        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
+        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { preload: this.preload, create: this.create, update: this.update });
     }
 
     private game :Game;
@@ -25,6 +25,12 @@ class MainState {
         this.initialiseGame();
         this.generateFireworks();
         this.startGame();
+    }
+
+    public update = () => {
+        for (let firework of this.fireworks) {
+            firework.setVelocity();
+        }
     }
 
     private initialiseGame = () => {

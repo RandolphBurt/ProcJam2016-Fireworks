@@ -14,9 +14,9 @@ var FireworkState;
     FireworkState[FireworkState["Finished"] = 2] = "Finished";
 })(FireworkState || (FireworkState = {}));
 var FireworkTransition = (function () {
-    function FireworkTransition(transitionType, angle, color) {
+    function FireworkTransition(transitionType, angularVelocity, color) {
         this.transitionType = transitionType;
-        this.angle = angle;
+        this.angularVelocity = angularVelocity;
         this.color = color;
     }
     return FireworkTransition;
@@ -72,6 +72,11 @@ var Firework = (function () {
         this.hasFinished = function () {
             return _this.state === FireworkState.Finished;
         };
+        this.setVelocity = function () {
+            if (_this.state == FireworkState.Active) {
+                _this.fireworkSpriteHandler.setVelocity(_this.spriteList);
+            }
+        };
         this.setNextTransitionEventTime = function () {
             if (_this.state === FireworkState.InActive) {
                 _this.state = FireworkState.Active;
@@ -79,8 +84,7 @@ var Firework = (function () {
             _this.nextTransitionEventTime = _this.gameClock.getGameTimeElapsed() + 1;
         };
         this.handleMove = function (transition) {
-            for (var sprite in _this.spriteList) {
-            }
+            _this.fireworkSpriteHandler.rotateSprites(_this.spriteList, transition.angularVelocity);
         };
         this.handleExplosion = function (transition) {
             _this.emitParticles(transition.color);
@@ -141,7 +145,7 @@ var FireworkFactory = (function () {
             return FireworkFactory.colourSpectrum[parseInt(colour)];
         };
         this.translateAngle = function (value) {
-            return (parseInt(value) * 90) - 45;
+            return (parseInt(value) * 10) - 45;
         };
     }
     FireworkFactory.colourSpectrum = [
@@ -206,12 +210,27 @@ var FireworkSpriteHandler = (function () {
                 fireworkSprite.reset(startXPosition, WorldConstants.GroundLevel);
             }
             _this.game.physics.enable(fireworkSprite, Phaser.Physics.ARCADE);
+            fireworkSprite.anchor.setTo(0.5, 0.5);
+            fireworkSprite.angle = angle;
+            fireworkSprite.body.velocity.setTo(0, 0);
             fireworkSprite.body.velocity.copyFrom(_this.game.physics.arcade.velocityFromAngle(angle, speed));
             return fireworkSprite;
         };
-        this.disposeSprites = function (spriteList) {
+        this.rotateSprites = function (spriteList, angularVelocity) {
             for (var _i = 0, spriteList_1 = spriteList; _i < spriteList_1.length; _i++) {
                 var sprite = spriteList_1[_i];
+                sprite.body.angularVelocity += angularVelocity;
+            }
+        };
+        this.setVelocity = function (spriteList) {
+            for (var _i = 0, spriteList_2 = spriteList; _i < spriteList_2.length; _i++) {
+                var sprite = spriteList_2[_i];
+                sprite.body.velocity.copyFrom(_this.game.physics.arcade.velocityFromAngle(sprite.angle, sprite.speed));
+            }
+        };
+        this.disposeSprites = function (spriteList) {
+            for (var _i = 0, spriteList_3 = spriteList; _i < spriteList_3.length; _i++) {
+                var sprite = spriteList_3[_i];
                 sprite.destroy();
             }
         };
@@ -243,6 +262,12 @@ var MainState = (function () {
             _this.initialiseGame();
             _this.generateFireworks();
             _this.startGame();
+        };
+        this.update = function () {
+            for (var _i = 0, _a = _this.fireworks; _i < _a.length; _i++) {
+                var firework = _a[_i];
+                firework.setVelocity();
+            }
         };
         this.initialiseGame = function () {
             _this.gameClock = new GameClock(_this.game);
@@ -288,7 +313,7 @@ var MainState = (function () {
             _this.fireworks[_this.fireworkLaunchedCounter].launch();
             _this.fireworkLaunchedCounter++;
         };
-        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
+        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { preload: this.preload, create: this.create, update: this.update });
     }
     return MainState;
 }());
@@ -338,7 +363,7 @@ var WorldConstants = (function () {
     }
     WorldConstants.WorldWidth = 800;
     WorldConstants.WorldHeight = 600;
-    WorldConstants.GroundLevel = 568;
+    WorldConstants.GroundLevel = 584;
     WorldConstants.MinLengthNumberGeneration = 5;
     WorldConstants.MaxLengthNumberGeneration = 25;
     WorldConstants.FireworkCreationTick = Phaser.Timer.SECOND / 5;
