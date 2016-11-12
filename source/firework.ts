@@ -93,7 +93,9 @@ class Firework {
     }
 
     private handleMove = (transition:FireworkTransition) => {
-        this.fireworkSpriteHandler.rotateSprites(this.spriteList, transition.angularVelocity);
+        for (let sprite of this.spriteList) {
+            this.fireworkSpriteHandler.rotateSprite(sprite, transition.angularVelocity);
+        }
     }
 
     private handleExplosion = (transition:FireworkTransition) => {
@@ -103,12 +105,22 @@ class Firework {
     }
 
     private handleSplit = (transition:FireworkTransition) => {
-        // TODO: foreach sprite...
-            // duplicate sprite - set one to go left and one to go right - add to new list
-            // Also trigger mini explosions of transition colour
-        // Then assign new list to sprite list
+        // duplicate sprite - set one to go left and one to go right - add to new list
+        // Also trigger mini explosions of transition colour
+        let newSprites:any[] = [];
+        for (let sprite of this.spriteList) {
+            sprite.scale.x *= 0.5;
+            sprite.scale.y *= 0.5;
+            let newSprite = this.fireworkSpriteHandler.copyFireworkSprite(sprite);
+            this.fireworkSpriteHandler.rotateSprite(sprite, transition.angularVelocity);
+            this.fireworkSpriteHandler.rotateSprite(newSprite, -1 * transition.angularVelocity);
+            newSprites.push(newSprite);
+            let particleEmitter = this.fireworkParticleHandler.createParticleEmitter();
+            this.particleEmitterList.push(particleEmitter);
+        }
         this.emitParticles(transition.color);
-    }
+        this.spriteList = this.spriteList.concat(newSprites);        
+    }    
 
     private emitParticles = (color:Phaser.Color) => {
         for (let i = 0; i < this.spriteList.length; i++) {

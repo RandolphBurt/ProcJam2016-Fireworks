@@ -1,5 +1,5 @@
 class FireworkFactory {
-    public static colourSpectrum:number[] = [
+    private static colourSpectrum:number[] = [
         0xFFA500, // Orange
         0x0000FF, // Blue
         0xFF0000, // Red
@@ -55,6 +55,6 @@ class FireworkFactory {
     }
 
     private translateAngle = (value:string) :number => {
-        return (parseInt(value) * 10) - 45;
+         return (parseInt(value) * WorldConstants.FireworkRotationRange / 9) - WorldConstants.FireworkRotationRange / 2;
     }
 }

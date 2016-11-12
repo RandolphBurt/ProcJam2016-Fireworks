@@ -84,7 +84,10 @@ var Firework = (function () {
             _this.nextTransitionEventTime = _this.gameClock.getGameTimeElapsed() + 1;
         };
         this.handleMove = function (transition) {
-            _this.fireworkSpriteHandler.rotateSprites(_this.spriteList, transition.angularVelocity);
+            for (var _i = 0, _a = _this.spriteList; _i < _a.length; _i++) {
+                var sprite = _a[_i];
+                _this.fireworkSpriteHandler.rotateSprite(sprite, transition.angularVelocity);
+            }
         };
         this.handleExplosion = function (transition) {
             _this.emitParticles(transition.color);
@@ -92,7 +95,20 @@ var Firework = (function () {
             _this.fireworkParticleHandler.disposeEmitters(_this.particleEmitterList);
         };
         this.handleSplit = function (transition) {
+            var newSprites = [];
+            for (var _i = 0, _a = _this.spriteList; _i < _a.length; _i++) {
+                var sprite = _a[_i];
+                sprite.scale.x *= 0.5;
+                sprite.scale.y *= 0.5;
+                var newSprite = _this.fireworkSpriteHandler.copyFireworkSprite(sprite);
+                _this.fireworkSpriteHandler.rotateSprite(sprite, transition.angularVelocity);
+                _this.fireworkSpriteHandler.rotateSprite(newSprite, -1 * transition.angularVelocity);
+                newSprites.push(newSprite);
+                var particleEmitter = _this.fireworkParticleHandler.createParticleEmitter();
+                _this.particleEmitterList.push(particleEmitter);
+            }
             _this.emitParticles(transition.color);
+            _this.spriteList = _this.spriteList.concat(newSprites);
         };
         this.emitParticles = function (color) {
             for (var i = 0; i < _this.spriteList.length; i++) {
@@ -145,7 +161,7 @@ var FireworkFactory = (function () {
             return FireworkFactory.colourSpectrum[parseInt(colour)];
         };
         this.translateAngle = function (value) {
-            return (parseInt(value) * 10) - 45;
+            return (parseInt(value) * WorldConstants.FireworkRotationRange / 9) - WorldConstants.FireworkRotationRange / 2;
         };
     }
     FireworkFactory.colourSpectrum = [
@@ -201,13 +217,37 @@ var FireworkSpriteHandler = (function () {
         this.game = game;
         this.fireworkSpritesGroup = fireworkSpritesGroup;
         this.createFireworkSprite = function (startXPercentage, angle, speed) {
-            var fireworkSprite = _this.fireworkSpritesGroup.getFirstExists(false);
             var startXPosition = WorldConstants.WorldWidth * startXPercentage / 100;
+            return _this.createSprite(startXPosition, WorldConstants.GroundLevel, angle, speed);
+        };
+        this.copyFireworkSprite = function (existingSprite) {
+            var newSprite = _this.createSprite(existingSprite.x, existingSprite.y, existingSprite.angle, existingSprite.speed);
+            newSprite.scale.x = existingSprite.scale.x;
+            newSprite.scale.y = existingSprite.scale.y;
+            return newSprite;
+        };
+        this.rotateSprite = function (sprite, angularVelocity) {
+            sprite.body.angularVelocity += angularVelocity;
+        };
+        this.setVelocity = function (spriteList) {
+            for (var _i = 0, spriteList_1 = spriteList; _i < spriteList_1.length; _i++) {
+                var sprite = spriteList_1[_i];
+                sprite.body.velocity.copyFrom(_this.game.physics.arcade.velocityFromAngle(sprite.angle, sprite.speed));
+            }
+        };
+        this.disposeSprites = function (spriteList) {
+            for (var _i = 0, spriteList_2 = spriteList; _i < spriteList_2.length; _i++) {
+                var sprite = spriteList_2[_i];
+                sprite.destroy();
+            }
+        };
+        this.createSprite = function (x, y, angle, speed) {
+            var fireworkSprite = _this.fireworkSpritesGroup.getFirstExists(false);
             if (!fireworkSprite) {
-                fireworkSprite = _this.fireworkSpritesGroup.create(startXPosition, WorldConstants.GroundLevel, 'firework');
+                fireworkSprite = _this.fireworkSpritesGroup.create(x, y, 'firework');
             }
             else {
-                fireworkSprite.reset(startXPosition, WorldConstants.GroundLevel);
+                fireworkSprite.reset(x, y);
             }
             _this.game.physics.enable(fireworkSprite, Phaser.Physics.ARCADE);
             fireworkSprite.anchor.setTo(0.5, 0.5);
@@ -215,24 +255,6 @@ var FireworkSpriteHandler = (function () {
             fireworkSprite.body.velocity.setTo(0, 0);
             fireworkSprite.body.velocity.copyFrom(_this.game.physics.arcade.velocityFromAngle(angle, speed));
             return fireworkSprite;
-        };
-        this.rotateSprites = function (spriteList, angularVelocity) {
-            for (var _i = 0, spriteList_1 = spriteList; _i < spriteList_1.length; _i++) {
-                var sprite = spriteList_1[_i];
-                sprite.body.angularVelocity += angularVelocity;
-            }
-        };
-        this.setVelocity = function (spriteList) {
-            for (var _i = 0, spriteList_2 = spriteList; _i < spriteList_2.length; _i++) {
-                var sprite = spriteList_2[_i];
-                sprite.body.velocity.copyFrom(_this.game.physics.arcade.velocityFromAngle(sprite.angle, sprite.speed));
-            }
-        };
-        this.disposeSprites = function (spriteList) {
-            for (var _i = 0, spriteList_3 = spriteList; _i < spriteList_3.length; _i++) {
-                var sprite = spriteList_3[_i];
-                sprite.destroy();
-            }
         };
     }
     return FireworkSpriteHandler;
@@ -364,13 +386,15 @@ var WorldConstants = (function () {
     WorldConstants.WorldWidth = 800;
     WorldConstants.WorldHeight = 600;
     WorldConstants.GroundLevel = 584;
+    WorldConstants.Gravity = 50;
     WorldConstants.MinLengthNumberGeneration = 5;
     WorldConstants.MaxLengthNumberGeneration = 25;
     WorldConstants.FireworkCreationTick = Phaser.Timer.SECOND / 5;
     WorldConstants.FireworkTransitionTick = Phaser.Timer.SECOND / 2;
-    WorldConstants.Gravity = 50;
     WorldConstants.ParticleLifespanMilliseconds = 2000;
     WorldConstants.ExplosionParticleCount = 100;
+    WorldConstants.FireworkRotationRange = 45;
+    WorldConstants.FireworkMaxRotation = 22;
     return WorldConstants;
 }());
 //# sourceMappingURL=app.js.map
