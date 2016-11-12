@@ -19,11 +19,20 @@ class FireworkFactory {
     }
 
     public create = (input:string) : Firework => {
-        let position = input.substr(0, 2);
-        let movementTransitions = input.substr(2, input.length - 3);
+        let xStartPosition = input.substr(0, 2);
+        let speedModifier = input.substr(2, 1);
+        let startAngle = input.substr(3, 1);
+        let movementTransitions = input.substr(2, input.length - 5);
         let colour = input[input.length - 1]; 
         
-        let firework = new Firework(this.translateStartPosition(position), this.fireworkSpriteHandler, this.fireworkParticleHandler, this.gameClock);
+        let firework = new Firework(
+            parseInt(xStartPosition), 
+            parseInt(speedModifier), 
+            this.translateAngle(startAngle), 
+            this.fireworkSpriteHandler, 
+            this.fireworkParticleHandler, 
+            this.gameClock);
+
         this.addMovementTransitions(firework, movementTransitions);
         this.addExplosionTransition(firework, colour);
 
@@ -44,10 +53,6 @@ class FireworkFactory {
             }
             previousCharacter = c;
         }
-    }
-
-    private translateStartPosition = (position:string) : number => {
-        return parseInt(position);
     }
 
     private translateColour = (colour:string) :number => {

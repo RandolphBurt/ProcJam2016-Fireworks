@@ -13,19 +13,14 @@ class FireworkParticleHandler {
         return particleEmitter;       
     }
 
-    public emitParticles = (spriteList:any[], particleEmitterList:Emitter[], color:Phaser.Color) => {
-        for (let i = 0; i < spriteList.length; i++) {
-            let particleEmitter = particleEmitterList[i];
-            let sprite = spriteList[i];
+    public emitParticles = (particleEmitter:Emitter, x:number, y:number, color:Phaser.Color, particleCount:number) => {
+        particleEmitter.x = x;
+        particleEmitter.y = y;
+        particleEmitter.forEach((particle:any) => { particle.tint = color; }, this);
 
-            particleEmitter.x = sprite.x;
-            particleEmitter.y = sprite.y;
-            particleEmitter.forEach((particle:any) => { particle.tint = color; }, this);
-
-            //  The first parameter sets the effect to "explode" which means all particles are emitted at once
-            //  The third is ignored when using burst/explode mode
-            particleEmitter.start(true, WorldConstants.ParticleLifespanMilliseconds, null, WorldConstants.ExplosionParticleCount);
-        }
+        //  The first parameter sets the effect to "explode" which means all particles are emitted at once
+        //  The third is ignored when using burst/explode mode
+        particleEmitter.start(true, WorldConstants.ParticleLifespanMilliseconds, null, particleCount);
     }
 
     public disposeEmitters= (particleEmitterList:Emitter[]) => {

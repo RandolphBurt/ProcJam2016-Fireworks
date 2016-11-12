@@ -51,8 +51,8 @@ class MainState {
             new FireworkParticleHandler(this.game), 
             this.gameClock);
 
-        let numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.MinLengthNumberGeneration, WorldConstants.MaxLengthNumberGeneration);
-        let numbers = numberProceduralGeneration.generate(1000);
+        let numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.NumberGenerationMinLength, WorldConstants.NumberGenerationMaxLength);
+        let numbers = numberProceduralGeneration.generate(WorldConstants.IterationCountNumberGeneration);
 
         for (var number of numbers) {
             this.fireworks.push(fireworkFactory.create(number));

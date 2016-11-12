@@ -24,7 +24,9 @@ class Firework {
     private nextTransitionEventTime:number = 0;
     
     constructor(
-        public readonly startXPercentage:number,
+        readonly startXPercentage:number,
+        readonly startSpeedModifier:number,
+        readonly startAngle:number,
         readonly fireworkSpriteHandler: FireworkSpriteHandler, 
         readonly fireworkParticleHandler: FireworkParticleHandler,
         readonly gameClock:GameClock) 
@@ -32,8 +34,11 @@ class Firework {
         }
 
     public launch = () => {
-        // TODO: Set the speed/direction based on something?
-        let sprite = this.fireworkSpriteHandler.createFireworkSprite(this.startXPercentage, -90, 50);
+        let sprite = this.fireworkSpriteHandler.createFireworkSprite(
+            this.startXPercentage, 
+            this.startAngle - 90, // -90 to ensure we are facing up rather than to the right
+            20 + (this.startSpeedModifier * 10));
+
         this.spriteList.push(sprite);
 
         let particleEmitter = this.fireworkParticleHandler.createParticleEmitter();
@@ -99,7 +104,7 @@ class Firework {
     }
 
     private handleExplosion = (transition:FireworkTransition) => {
-        this.emitParticles(transition.color);
+        this.emitParticles(transition.color, WorldConstants.ExplosionParticleCount);
         this.fireworkSpriteHandler.disposeSprites(this.spriteList);
         this.fireworkParticleHandler.disposeEmitters( this.particleEmitterList);
     }
@@ -118,22 +123,15 @@ class Firework {
             let particleEmitter = this.fireworkParticleHandler.createParticleEmitter();
             this.particleEmitterList.push(particleEmitter);
         }
-        this.emitParticles(transition.color);
+        this.emitParticles(transition.color, WorldConstants.SplitParticleCount);
         this.spriteList = this.spriteList.concat(newSprites);        
     }    
 
-    private emitParticles = (color:Phaser.Color) => {
+    private emitParticles = (color:Phaser.Color, particleCount:number) => {
         for (let i = 0; i < this.spriteList.length; i++) {
             let particleEmitter = this.particleEmitterList[i];
             let sprite = this.spriteList[i];
-
-            particleEmitter.x = sprite.x;
-            particleEmitter.y = sprite.y;
-            particleEmitter.forEach((particle:any) => { particle.tint = color; }, this);
-
-            //  The first parameter sets the effect to "explode" which means all particles are emitted at once
-            //  The third is ignored when using burst/explode mode
-            particleEmitter.start(true, WorldConstants.ParticleLifespanMilliseconds, null, WorldConstants.ExplosionParticleCount);
+            this.fireworkParticleHandler.emitParticles(particleEmitter, sprite.x, sprite.y, color, particleCount);
         }
     }
 }

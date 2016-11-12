@@ -8,7 +8,7 @@ class FireworkSpriteHandler {
     }
 
     public copyFireworkSprite = (existingSprite:any) : any => {
-        let newSprite = this.createSprite(existingSprite.x, existingSprite.y, existingSprite.angle, existingSprite.speed);
+        let newSprite = this.createSprite(existingSprite.x, existingSprite.y, existingSprite.angle, existingSprite.body.speed);
         newSprite.scale.x = existingSprite.scale.x;
         newSprite.scale.y = existingSprite.scale.y;
         return newSprite;
@@ -20,7 +20,7 @@ class FireworkSpriteHandler {
 
     public setVelocity = (spriteList:any[]) => {
         for (let sprite of spriteList) {
-            sprite.body.velocity.copyFrom(this.game.physics.arcade.velocityFromAngle(sprite.angle, sprite.speed));
+            sprite.body.velocity.copyFrom(this.game.physics.arcade.velocityFromAngle(sprite.angle, sprite.body.speed));
         }
     }
 
@@ -42,7 +42,6 @@ class FireworkSpriteHandler {
         fireworkSprite.anchor.setTo(0.5, 0.5);
 
         fireworkSprite.angle = angle;
-        fireworkSprite.body.velocity.setTo(0, 0);
         fireworkSprite.body.velocity.copyFrom(this.game.physics.arcade.velocityFromAngle(angle, speed));
 
         return fireworkSprite;
