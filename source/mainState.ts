@@ -5,7 +5,7 @@ import Emitter = Phaser.Particles.Arcade.Emitter;
 
 class MainState {
     constructor() {
-        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { init: this.init, preload: this.preload, create: this.create });
+        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
     }
 
     private game :Game;
@@ -20,32 +20,24 @@ class MainState {
         this.game.load.image('particle', 'assets/particle.png');
     }
 
-    public init = () => {
-        this.fireworks = [];
-        let numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.MinLengthNumberGeneration, WorldConstants.MaxLengthNumberGeneration);
-        let numbers = numberProceduralGeneration.generate(1000);
-
-        let fireworkCallbacks: FireworkCallbacks = {
-            createFireworkSprite: this.createFireworkSprite, 
-            getGameTimeElapsed: this.getGameTimeElapsed,
-            createParticleEmitter: this.createParticleEmitter,
-            disposePhaserObjects: this.disposePhaserObjects
-        };
-
-        let fireworkFactory = new FireworkFactory(fireworkCallbacks);
-        for (var number of numbers) {
-            this.fireworks.push(fireworkFactory.create(number));
-        }
-    }
-
     public create = () => {
         this.game.physics.startSystem(Phaser.Physics.ARCADE);
         this.game.world.setBounds(0, 0, WorldConstants.WorldWidth, WorldConstants.WorldHeight);
 
         this.game.scale.pageAlignHorizontally = true;
-        this.game.stage.backgroundColor = '#ffffff';
+        this.game.stage.backgroundColor = '#222222';
         this.game.renderer.renderSession.roundPixels = true;
         this.fireworkSpritesGroup = this.game.add.physicsGroup();
+
+        this.fireworks = [];
+        let fireworkFactory = new FireworkFactory(new FireworkPhaserObjectHandler(this.game, this.fireworkSpritesGroup));
+
+        let numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.MinLengthNumberGeneration, WorldConstants.MaxLengthNumberGeneration);
+        let numbers = numberProceduralGeneration.generate(1000);
+
+        for (var number of numbers) {
+            this.fireworks.push(fireworkFactory.create(number));
+        }
 
         this.fireworkLaunchedCounter = 0;
         this.fireworkCreationTimer = this.game.time.events.loop(WorldConstants.FireworkCreationTick, this.fireworkCreationTick, this);
@@ -81,43 +73,4 @@ class MainState {
     private getGameTimeElapsed = () : number => {
         return this.game.time.totalElapsedSeconds();
     }
-
-    private createFireworkSprite = (startXPercentage:number, angle:number, speed:number) : any => {
-        let fireworkSprite = this.fireworkSpritesGroup.getFirstExists(false);
-
-        let startXPosition:number = WorldConstants.WorldWidth * startXPercentage / 100;
-        if (!fireworkSprite) {
-            fireworkSprite = this.fireworkSpritesGroup.create(startXPosition, WorldConstants.GroundLevel, 'firework');
-        } else {
-            fireworkSprite.reset(startXPosition, WorldConstants.GroundLevel);
-        }
-        this.game.physics.enable(fireworkSprite, Phaser.Physics.ARCADE);
-
-        fireworkSprite.body.velocity.copyFrom(this.game.physics.arcade.velocityFromAngle(angle, speed));
-
-        return fireworkSprite;
-    }
-
-    private createParticleEmitter = () : Emitter => {
-        let particleEmitter = this.game.add.emitter(0, 0, WorldConstants.ExplosionParticleCount);
-        particleEmitter.makeParticles('particle');
-        particleEmitter.autoAlpha = true;
-        particleEmitter.setAlpha(1, 0, WorldConstants.ParticleLifespanMilliseconds);
-
-        particleEmitter.gravity = WorldConstants.Gravity;
-
-        return particleEmitter;       
-    }
-
-    private disposePhaserObjects= (spriteList:any[], particleEmitterList:Emitter[]) => {
-        for (let sprite of spriteList) {
-            sprite.destroy();
-        }
-
-        this.game.time.events.add(WorldConstants.ParticleLifespanMilliseconds, () => {
-            for (let emitter of particleEmitterList) {
-                emitter.destroy();
-            }
-        }, this);
-   }
 }

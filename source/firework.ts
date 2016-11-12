@@ -1,5 +1,3 @@
-import Point = Phaser.Point;
-
 enum FireworkTransitionType {
     Move,
     Split,
@@ -17,13 +15,6 @@ class FireworkTransition {
     }
 }
 
-interface FireworkCallbacks {
-    createFireworkSprite(startXPercentage:number, angle:number, speed:number) : any;
-    getGameTimeElapsed() : number;
-    createParticleEmitter(): Emitter;
-    disposePhaserObjects(spriteList:any[], particleEmitterList:Emitter[]) : void;
-}
-
 class Firework {
     private transitionList:FireworkTransition[] = [];
     private spriteList:any[] = [];
@@ -32,15 +23,15 @@ class Firework {
     private state:FireworkState = FireworkState.InActive;
     private nextTransitionEventTime:number = 0;
     
-    constructor(public readonly startXPercentage:number, readonly fireworkCallbacks: FireworkCallbacks) {
+    constructor(public readonly startXPercentage:number, readonly fireworkPhaserObjectHandler: FireworkPhaserObjectHandler) {
     }
 
     public launch = () => {
         // TODO: Set the speed/direction based on something?
-        let sprite = this.fireworkCallbacks.createFireworkSprite(this.startXPercentage, -90, 50);
+        let sprite = this.fireworkPhaserObjectHandler.createFireworkSprite(this.startXPercentage, -90, 50);
         this.spriteList.push(sprite);
 
-        let particleEmitter = this.fireworkCallbacks.createParticleEmitter();
+        let particleEmitter = this.fireworkPhaserObjectHandler.createParticleEmitter();
         this.particleEmitterList.push(particleEmitter);
         this.setNextTransitionEventTime();
     }
@@ -87,7 +78,7 @@ class Firework {
             this.state = FireworkState.Active;
         }
         // TODO: Maybe alter +1 based on something
-        this.nextTransitionEventTime = this.fireworkCallbacks.getGameTimeElapsed() + 1;
+        this.nextTransitionEventTime = this.fireworkPhaserObjectHandler.getGameTimeElapsed() + 1;
     }
 
     private handleMove = (transition:FireworkTransition) => {
@@ -97,7 +88,7 @@ class Firework {
     private handleExplosion = (transition:FireworkTransition) => {
         // TODO: Foreach sprite, create particles (with transition color) and then kill sprite list
         this.emitParticles(transition.color);
-        this.fireworkCallbacks.disposePhaserObjects(this.spriteList, this.particleEmitterList);
+        this.fireworkPhaserObjectHandler.disposePhaserObjects(this.spriteList, this.particleEmitterList);
     }
 
     private handleSplit = (transition:FireworkTransition) => {

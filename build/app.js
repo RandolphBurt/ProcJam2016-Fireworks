@@ -1,7 +1,6 @@
 window.onload = function () {
     var gameState = new MainState();
 };
-var Point = Phaser.Point;
 var FireworkTransitionType;
 (function (FireworkTransitionType) {
     FireworkTransitionType[FireworkTransitionType["Move"] = 0] = "Move";
@@ -23,19 +22,19 @@ var FireworkTransition = (function () {
     return FireworkTransition;
 }());
 var Firework = (function () {
-    function Firework(startXPercentage, fireworkCallbacks) {
+    function Firework(startXPercentage, fireworkPhaserObjectHandler) {
         var _this = this;
         this.startXPercentage = startXPercentage;
-        this.fireworkCallbacks = fireworkCallbacks;
+        this.fireworkPhaserObjectHandler = fireworkPhaserObjectHandler;
         this.transitionList = [];
         this.spriteList = [];
         this.particleEmitterList = [];
         this.state = FireworkState.InActive;
         this.nextTransitionEventTime = 0;
         this.launch = function () {
-            var sprite = _this.fireworkCallbacks.createFireworkSprite(_this.startXPercentage, -90, 50);
+            var sprite = _this.fireworkPhaserObjectHandler.createFireworkSprite(_this.startXPercentage, -90, 50);
             _this.spriteList.push(sprite);
-            var particleEmitter = _this.fireworkCallbacks.createParticleEmitter();
+            var particleEmitter = _this.fireworkPhaserObjectHandler.createParticleEmitter();
             _this.particleEmitterList.push(particleEmitter);
             _this.setNextTransitionEventTime();
         };
@@ -75,13 +74,13 @@ var Firework = (function () {
             if (_this.state === FireworkState.InActive) {
                 _this.state = FireworkState.Active;
             }
-            _this.nextTransitionEventTime = _this.fireworkCallbacks.getGameTimeElapsed() + 1;
+            _this.nextTransitionEventTime = _this.fireworkPhaserObjectHandler.getGameTimeElapsed() + 1;
         };
         this.handleMove = function (transition) {
         };
         this.handleExplosion = function (transition) {
             _this.emitParticles(transition.color);
-            _this.fireworkCallbacks.disposePhaserObjects(_this.spriteList, _this.particleEmitterList);
+            _this.fireworkPhaserObjectHandler.disposePhaserObjects(_this.spriteList, _this.particleEmitterList);
         };
         this.handleSplit = function (transition) {
             _this.emitParticles(transition.color);
@@ -100,14 +99,14 @@ var Firework = (function () {
     return Firework;
 }());
 var FireworkFactory = (function () {
-    function FireworkFactory(fireworkCallbacks) {
+    function FireworkFactory(fireworkPhaserObjectHandler) {
         var _this = this;
-        this.fireworkCallbacks = fireworkCallbacks;
+        this.fireworkPhaserObjectHandler = fireworkPhaserObjectHandler;
         this.create = function (input) {
             var position = input.substr(0, 2);
             var movementTransitions = input.substr(2, input.length - 3);
             var colour = input[input.length - 1];
-            var firework = new Firework(_this.translateStartPosition(position), _this.fireworkCallbacks);
+            var firework = new Firework(_this.translateStartPosition(position), _this.fireworkPhaserObjectHandler);
             _this.addMovementTransitions(firework, movementTransitions);
             _this.addExplosionTransition(firework, colour);
             return firework;
@@ -152,64 +151,11 @@ var FireworkFactory = (function () {
     ];
     return FireworkFactory;
 }());
-var Key = Phaser.Key;
-var Sprite = Phaser.Sprite;
-var Game = Phaser.Game;
-var Emitter = Phaser.Particles.Arcade.Emitter;
-var MainState = (function () {
-    function MainState() {
+var FireworkPhaserObjectHandler = (function () {
+    function FireworkPhaserObjectHandler(game, fireworkSpritesGroup) {
         var _this = this;
-        this.preload = function () {
-            _this.game.load.image('firework', 'assets/firework.png');
-            _this.game.load.image('particle', 'assets/particle.png');
-        };
-        this.init = function () {
-            _this.fireworks = [];
-            var numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.MinLengthNumberGeneration, WorldConstants.MaxLengthNumberGeneration);
-            var numbers = numberProceduralGeneration.generate(1000);
-            var fireworkCallbacks = {
-                createFireworkSprite: _this.createFireworkSprite,
-                getGameTimeElapsed: _this.getGameTimeElapsed,
-                createParticleEmitter: _this.createParticleEmitter,
-                disposePhaserObjects: _this.disposePhaserObjects
-            };
-            var fireworkFactory = new FireworkFactory(fireworkCallbacks);
-            for (var _i = 0, numbers_1 = numbers; _i < numbers_1.length; _i++) {
-                var number = numbers_1[_i];
-                _this.fireworks.push(fireworkFactory.create(number));
-            }
-        };
-        this.create = function () {
-            _this.game.physics.startSystem(Phaser.Physics.ARCADE);
-            _this.game.world.setBounds(0, 0, WorldConstants.WorldWidth, WorldConstants.WorldHeight);
-            _this.game.scale.pageAlignHorizontally = true;
-            _this.game.stage.backgroundColor = '#ffffff';
-            _this.game.renderer.renderSession.roundPixels = true;
-            _this.fireworkSpritesGroup = _this.game.add.physicsGroup();
-            _this.fireworkLaunchedCounter = 0;
-            _this.fireworkCreationTimer = _this.game.time.events.loop(WorldConstants.FireworkCreationTick, _this.fireworkCreationTick, _this);
-            _this.fireworkTransitionTimer = _this.game.time.events.loop(WorldConstants.FireworkTransitionTick, _this.fireworkTransitionTick, _this);
-        };
-        this.fireworkTransitionTick = function () {
-            var elapsed = _this.getGameTimeElapsed();
-            for (var _i = 0, _a = _this.fireworks; _i < _a.length; _i++) {
-                var firework = _a[_i];
-                if (!firework.hasStarted()) {
-                    return;
-                }
-                if (!firework.hasFinished() && firework.getNextTransitionEventTime() <= elapsed) {
-                    firework.runNextTransition();
-                }
-            }
-        };
-        this.fireworkCreationTick = function () {
-            if (_this.fireworkLaunchedCounter >= _this.fireworks.length) {
-                _this.game.time.events.remove(_this.fireworkCreationTimer);
-                return;
-            }
-            _this.fireworks[_this.fireworkLaunchedCounter].launch();
-            _this.fireworkLaunchedCounter++;
-        };
+        this.game = game;
+        this.fireworkSpritesGroup = fireworkSpritesGroup;
         this.getGameTimeElapsed = function () {
             return _this.game.time.totalElapsedSeconds();
         };
@@ -246,7 +192,63 @@ var MainState = (function () {
                 }
             }, _this);
         };
-        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { init: this.init, preload: this.preload, create: this.create });
+    }
+    return FireworkPhaserObjectHandler;
+}());
+var Key = Phaser.Key;
+var Sprite = Phaser.Sprite;
+var Game = Phaser.Game;
+var Emitter = Phaser.Particles.Arcade.Emitter;
+var MainState = (function () {
+    function MainState() {
+        var _this = this;
+        this.preload = function () {
+            _this.game.load.image('firework', 'assets/firework.png');
+            _this.game.load.image('particle', 'assets/particle.png');
+        };
+        this.create = function () {
+            _this.game.physics.startSystem(Phaser.Physics.ARCADE);
+            _this.game.world.setBounds(0, 0, WorldConstants.WorldWidth, WorldConstants.WorldHeight);
+            _this.game.scale.pageAlignHorizontally = true;
+            _this.game.stage.backgroundColor = '#222222';
+            _this.game.renderer.renderSession.roundPixels = true;
+            _this.fireworkSpritesGroup = _this.game.add.physicsGroup();
+            _this.fireworks = [];
+            var fireworkFactory = new FireworkFactory(new FireworkPhaserObjectHandler(_this.game, _this.fireworkSpritesGroup));
+            var numberProceduralGeneration = new NumberProceduralGeneration(324, WorldConstants.MinLengthNumberGeneration, WorldConstants.MaxLengthNumberGeneration);
+            var numbers = numberProceduralGeneration.generate(1000);
+            for (var _i = 0, numbers_1 = numbers; _i < numbers_1.length; _i++) {
+                var number = numbers_1[_i];
+                _this.fireworks.push(fireworkFactory.create(number));
+            }
+            _this.fireworkLaunchedCounter = 0;
+            _this.fireworkCreationTimer = _this.game.time.events.loop(WorldConstants.FireworkCreationTick, _this.fireworkCreationTick, _this);
+            _this.fireworkTransitionTimer = _this.game.time.events.loop(WorldConstants.FireworkTransitionTick, _this.fireworkTransitionTick, _this);
+        };
+        this.fireworkTransitionTick = function () {
+            var elapsed = _this.getGameTimeElapsed();
+            for (var _i = 0, _a = _this.fireworks; _i < _a.length; _i++) {
+                var firework = _a[_i];
+                if (!firework.hasStarted()) {
+                    return;
+                }
+                if (!firework.hasFinished() && firework.getNextTransitionEventTime() <= elapsed) {
+                    firework.runNextTransition();
+                }
+            }
+        };
+        this.fireworkCreationTick = function () {
+            if (_this.fireworkLaunchedCounter >= _this.fireworks.length) {
+                _this.game.time.events.remove(_this.fireworkCreationTimer);
+                return;
+            }
+            _this.fireworks[_this.fireworkLaunchedCounter].launch();
+            _this.fireworkLaunchedCounter++;
+        };
+        this.getGameTimeElapsed = function () {
+            return _this.game.time.totalElapsedSeconds();
+        };
+        this.game = new Game(WorldConstants.WorldWidth, WorldConstants.WorldHeight, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
     }
     return MainState;
 }());
